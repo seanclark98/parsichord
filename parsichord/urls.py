@@ -16,4 +16,6 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
-urlpatterns = [path("admin/", admin.site.urls)]
+from chords.views import ChordView
+
+urlpatterns = [path("admin/", admin.site.urls), path("chords/", ChordView.as_view())]

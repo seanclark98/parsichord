@@ -1,4 +1,3 @@
-# from enum import IntEnum
 from typing import Callable, Set
 
 from django.db import models
@@ -22,61 +21,58 @@ class Note(models.IntegerChoices):
         return Note((self.value + interval) % 12)
 
 
-# class Note(models.Model):
-
-#     Name = models.IntegerChoices("Name", "C Db D Eb E F Gb G Ab A Bb B")
-#     # Name = models.IntegerChoices("Name", "C C# D D# E F F# G G# A A# B")
-
-#     note = models.IntegerField(choices=Name.choices)
-
-# def __str__(self):
-#     return self.note
-
-# def __add__(self, interval: int):
-#     obj, _ = Note.objects.get_or_create(note=(self.note.value + interval) % 12)
-#     return obj
-
-
-PITCHES = []
-
-
 class Pitch(models.Model):
-    pitch = models.CharField(max_length=5)
-    audio = models.FileField(upload_to="audio/")
     note = models.IntegerField(choices=Note.choices)
+    octave = models.IntegerField()
+    audio = models.FileField(upload_to="audio/")
 
 
 class Scale(models.Model):
-    def __init__(self, root: Note, ivls):
-        self.start = root
-        self.notes = iter([root + ivl for ivl in ivls])
+    name = models.CharField(max_length=30)
+    notes = models.JSONField(
+        "Notes", default=list([Note.C, Note.D, Note.E, Note.F, Note.G, Note.A, Note.B])
+    )
+
+    # def __init__(self):
+    #     print("notes:", self.notes)
+    #     self.iternotes = iter(self.notes)
 
     def __iter__(self):
+        self.iternotes = iter(self.notes)
         return self
 
     def __next__(self):
-        return next(self.notes)
+        return next(self.iternotes)
 
 
-class AbstractChord(models.Model):
-    length = models.IntegerField()
+class Chord(models.Model):
+    # length = models.IntegerField()
     name = models.CharField(max_length=30)
-    # notes = models.JSONField()
-    # notes = models.ManyToManyField(Note)
+    notes = models.JSONField()
     # related_chords = models.ManyToManyField()
 
     _intervals = None
 
+    def __str__(self):
+        return self.name
+
     @property
     def related_chords(self, relation: Callable) -> Set:
-        return {self}
+        return {}
 
     @property
     def intervals(self):
-        if not self._intervals:
-            self._intervals = [NOTE_TO_INT[note] for note in self.notes]
+        if self._intervals:
+            return self._intervals
+
+        self._intervals = []
+        previous_note = self.notes[0]
+        for note in self.notes:
+            ivl = (note.value - previous_note.value) % 12
+            self._intervals.append(ivl)
+            previous_note = note
         return self._intervals
 
 
-# class Chord(AbstractChord):
+# class Chord():
 #     notes = models.ManyToManyField(Pitch)
