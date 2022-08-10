@@ -1,12 +1,9 @@
 from typing import List
 
 from multiselectfield import MultiSelectField
-from multiselectfield.forms.fields import MultiSelectFormField
 
-# from django.core.validators import int_list_validator
 from django import forms
 from django.db import models
-from django.utils.text import capfirst
 
 
 class Note(models.IntegerChoices):
@@ -59,7 +56,6 @@ class NoteField(models.IntegerField):
         return super().formfield(**defaults)
 
 
-# Interval = models.IntegerChoices("Intervals", "m2 M2 m3 M3 P4 dim5 P5 m6 M6 m7 M7")
 class Interval(models.IntegerChoices):
     MINOR_SECOND = 1, "m2"
     MAJOR_SECOND = 2, "M2"
@@ -74,49 +70,13 @@ class Interval(models.IntegerChoices):
     MAJOR_SEVENTH = 11, "M7"
 
 
-def parse_intervals(value: str) -> List[Interval]:
-    intervals = value
-    # if isinstance(intervals, str):
-    # intervals = intervals.split(",")
-
+def parse_intervals(intervals: list) -> List[Interval]:
+    intervals = intervals.split(",")
     return [Interval(int(ivl)) for ivl in intervals]
 
 
 class IntervalsField(MultiSelectField):
     def from_db_value(self, value, expression, connection) -> List[Interval]:
-        print("db value", value, type(value))
         if value is None:
             return value
-        intervals = value.split(",")
-        return parse_intervals(intervals)
-
-    def to_python(self, value: str) -> List[Interval]:
-        print("to_python value", value, type(value))
-        if isinstance(value, list) and all(isinstance(ivl, Interval) for ivl in value):
-            return value
-
-        if value is None:
-            return value
-
         return parse_intervals(value)
-
-    def get_prep_value(self, value) -> List[int]:
-        print("prep_value", value)
-        return [ivl.value for ivl in value]
-
-    def formfield(self, **kwargs):
-        defaults = {
-            "required": not self.blank,
-            "label": capfirst(self.verbose_name),
-            "help_text": self.help_text,
-            "choices": self.choices,
-            "max_length": self.max_length,
-            "max_choices": self.max_choices,
-        }
-        if self.has_default():
-            defaults["initial"] = self.get_default()
-        defaults.update(kwargs)
-        return MultiSelectFormField(**defaults)
-
-    def validate(self, value, model_instance):
-        super().validate([str(ivl.value) for ivl in value], model_instance)
