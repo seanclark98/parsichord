@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "chords",
     "rest_framework",
+    "multiselectfield",
 ]
 
 MIDDLEWARE = [

@@ -8,7 +8,7 @@ class ChordSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Chord
-        fields = ("name", "notes")
+        fields = ("root", "chord_type", "notes")
 
     def get_notes(self, chord):
         return [Note(n).name for n in chord.notes]

@@ -1,24 +1,10 @@
 from typing import Callable, Set
 
+# from multiselectfield import MultiSelectField
+
 from django.db import models
 
-
-class Note(models.IntegerChoices):
-    C = 1
-    Db = 2
-    D = 3
-    Eb = 4
-    E = 5
-    F = 6
-    Gb = 7
-    G = 8
-    Ab = 9
-    A = 10
-    Bb = 11
-    B = 12
-
-    def __add__(self, interval: int):
-        return Note((self.value + interval) % 12)
+from chords.fields import Note, NoteField, Interval, IntervalsField
 
 
 class Pitch(models.Model):
@@ -45,34 +31,45 @@ class Scale(models.Model):
         return next(self.iternotes)
 
 
-class Chord(models.Model):
-    # length = models.IntegerField()
+class ChordType(models.Model):
     name = models.CharField(max_length=30)
-    notes = models.JSONField()
-    # related_chords = models.ManyToManyField()
-
-    _intervals = None
+    intervals = IntervalsField(choices=Interval.choices, max_length=12)
 
     def __str__(self):
         return self.name
+
+
+class Chord(models.Model):
+    root = NoteField(choices=Note.choices)
+    chord_type = models.ForeignKey(ChordType, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"{self.root.name} {self.chord_type.name}"
+
+    @property
+    def notes(self):
+        return [self.root] + [self.root + ivl for ivl in self.chord_type.intervals]
 
     @property
     def related_chords(self, relation: Callable) -> Set:
         return {}
 
-    @property
-    def intervals(self):
-        if self._intervals:
-            return self._intervals
+    # @property
+    # def intervals(self):
+    #     if self._intervals:
+    #         return self._intervals
 
-        self._intervals = []
-        previous_note = self.notes[0]
-        for note in self.notes:
-            ivl = (note.value - previous_note.value) % 12
-            self._intervals.append(ivl)
-            previous_note = note
-        return self._intervals
+    #     self._intervals = []
+    #     previous_note = self.notes[0]
+    #     for note in self.notes:
+    #         ivl = (note.value - previous_note.value) % 12
+    #         self._intervals.append(ivl)
+    #         previous_note = note
+    #     return self._intervals
 
+
+# def sub_v(chord: Chord) -> Chord:
+#     chord
 
 # class Chord():
 #     notes = models.ManyToManyField(Pitch)
