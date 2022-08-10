@@ -1,7 +1,5 @@
 from typing import Callable, Set
 
-# from multiselectfield import MultiSelectField
-
 from django.db import models
 
 from chords.fields import Note, NoteField, Interval, IntervalsField
@@ -18,10 +16,6 @@ class Scale(models.Model):
     notes = models.JSONField(
         "Notes", default=list([Note.C, Note.D, Note.E, Note.F, Note.G, Note.A, Note.B])
     )
-
-    # def __init__(self):
-    #     print("notes:", self.notes)
-    #     self.iternotes = iter(self.notes)
 
     def __iter__(self):
         self.iternotes = iter(self.notes)
@@ -53,19 +47,6 @@ class Chord(models.Model):
     @property
     def related_chords(self, relation: Callable) -> Set:
         return {}
-
-    # @property
-    # def intervals(self):
-    #     if self._intervals:
-    #         return self._intervals
-
-    #     self._intervals = []
-    #     previous_note = self.notes[0]
-    #     for note in self.notes:
-    #         ivl = (note.value - previous_note.value) % 12
-    #         self._intervals.append(ivl)
-    #         previous_note = note
-    #     return self._intervals
 
 
 # def sub_v(chord: Chord) -> Chord:
