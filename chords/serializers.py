@@ -1,6 +1,12 @@
 from rest_framework import serializers
 
-from chords.models import Chord, Note, Scale
+from chords.models import Chord, ChordType, Scale
+
+
+class ChordTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChordType
+        fields = ("name", "intervals")
 
 
 class ChordSerializer(serializers.ModelSerializer):
@@ -11,7 +17,7 @@ class ChordSerializer(serializers.ModelSerializer):
         fields = ("root", "chord_type", "notes")
 
     def get_notes(self, chord):
-        return [Note(n).name for n in chord.notes]
+        return [note.name for note in chord.notes]
 
 
 class ScaleSerializer(serializers.ModelSerializer):

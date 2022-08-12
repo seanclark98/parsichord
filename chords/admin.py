@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django import forms
 
-from chords.models import Chord, ChordType, Interval, Pitch, Scale
+from .models import Chord, ChordType, ChordVoicing, Interval, Pitch, Scale
 
 
 class ChordTypeForm(forms.ModelForm):
@@ -23,3 +23,20 @@ class ChordAdmin(admin.ModelAdmin):
 
 admin.site.register(Pitch)
 admin.site.register(Scale)
+
+
+class ChordVoicingForm(forms.ModelForm):
+    class Meta:
+        model = ChordVoicing
+        fields = ("chord", "pitches")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["pitches"].queryset = Pitch.objects.filter(
+            note__in=self.instance.chord.values_list("notes", flat=True)
+        )
+
+
+@admin.register(ChordVoicing)
+class ChordVoicingAdmin(admin.ModelAdmin):
+    form = ChordVoicingForm
