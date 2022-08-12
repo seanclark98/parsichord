@@ -4,7 +4,8 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from chords.fields import Note, NoteField, Interval, IntervalsField
+from .constants import Interval, Note
+from .fields import NoteField, IntervalsField
 
 
 class Pitch(models.Model):

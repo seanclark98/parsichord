@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from chords.models import Chord, ChordType, Scale
+from .models import Chord, ChordType, Scale
 
 
 class ChordTypeSerializer(serializers.ModelSerializer):

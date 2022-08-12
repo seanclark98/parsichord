@@ -1,7 +1,8 @@
 from django.contrib import admin
 from django import forms
 
-from .models import Chord, ChordType, ChordVoicing, Interval, Pitch, Scale
+from .constants import Interval
+from .models import Chord, ChordType, ChordVoicing, Pitch, Scale
 
 
 class ChordTypeForm(forms.ModelForm):
