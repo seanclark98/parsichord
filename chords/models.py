@@ -1,14 +1,15 @@
-from typing import Callable, Set
+from __future__ import annotations
 
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from .constants import Interval, Note
-from .fields import NoteField, IntervalsField
+from .constants import Interval, Note, Triad, TriadNotes
+from .fields import NoteField, IntervalField, IntervalsField
 
 
 class Pitch(models.Model):
+    # pitch class
     note = NoteField(choices=Note.choices)
     octave = models.IntegerField()
     audio = models.FileField(upload_to="audio/", null=True, blank=True)
@@ -36,59 +37,116 @@ class Scale(models.Model):
 
 class ChordType(models.Model):
     name = models.CharField(max_length=30, unique=True)
-    intervals = IntervalsField(choices=Interval.choices, max_length=12)
+    base = models.CharField(choices=Triad.choices, max_length=30)
+    seventh = IntervalField(choices=Interval.choices, null=True, blank=True)
+    extensions = IntervalsField(
+        choices=Interval.choices, max_length=12, blank=True
+    )
 
     def __str__(self):
         return self.name
+
+    @property
+    def intervals(self):
+        basechord = list(TriadNotes[self.base].value)
+        seventh = [self.seventh] if self.seventh else []
+        intervals = basechord + seventh + self.extensions
+        return intervals
+
+    @property
+    def relations(self):
+        return self.ascending_relations.all() | self.descending_relations.all()
 
 
 class Chord(models.Model):
     root = NoteField(choices=Note.choices)
     chord_type = models.ForeignKey(ChordType, on_delete=models.CASCADE)
+    related_chords = models.ManyToManyField(
+        "Chord", null=True, blank=True, editable=False
+    )
 
     class Meta:
         unique_together = ("root", "chord_type")
 
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        self.get_related_chords()
+
+    def get_related_chords(self):
+        self.related_chords.add(
+            *[rel(self) for rel in self.chord_type.relations]
+        )
+
     def __str__(self):
         return f"{self.root.name} {self.chord_type.name}"
 
-    def __add__(self, interval: int):
-        return [note + interval for note in self.notes]
+    def __add__(self, interval: int) -> Chord:
+        new_chord, _ = Chord.objects.get_or_create(
+            root=self.root + interval, chord_type=self.chord_type
+        )
+        return new_chord
 
     def __len__(self):
         return len(self.notes)
 
-    def is_major(self):
+    def __getitem__(self, interval: Interval) -> Note | None:
+        return note if (note := self.root + interval) in self.notes else None
+
+    def is_major(self) -> bool:
         return self.root + Interval.MAJOR_THIRD in self.notes
 
-    def is_minor(self):
+    def is_minor(self) -> bool:
         return self.root + Interval.MINOR_THIRD in self.notes
 
-    def is_tertian(self):
-        return [
-            ivl in [Interval.MINOR_THIRD, Interval.MAJOR_THIRD]
-            for ivl in self.chord_type.intervals
-        ]
+    def is_tertian(self) -> bool:
+        return all(
+            [
+                ivl in [Interval.MINOR_THIRD, Interval.MAJOR_THIRD]
+                for ivl in self.chord_type.intervals
+            ]
+        )
+
+    def is_triad(self):
+        return self.is_tertian and len(self) == 3
 
     _notes = None
 
     @property
-    def notes(self):
+    def notes(self) -> list[Note]:
         if not self._notes:
             self._notes = [self.root + ivl for ivl in self.chord_type.intervals]
         return self._notes
 
-    @property
-    def related_chords(self, relation: Callable) -> Set:
-        return {}
+
+class Relation(models.Model):
+    name = models.CharField(max_length=30)
+    chord_type_i = models.ForeignKey(
+        ChordType, on_delete=models.CASCADE, related_name="ascending_relations"
+    )
+    chord_type_j = models.ForeignKey(
+        ChordType, on_delete=models.CASCADE, related_name="descending_relations"
+    )
+    transposition = IntervalField()
+
+    def __call__(self, chord: Chord):
+        new_chord = chord
+        if chord.chord_type == self.chord_type_i:
+            new_chord, _ = Chord.objects.get_or_create(
+                root=chord.root + self.transposition, chord_type=self.chord_type_j
+            )
+        elif chord.chord_type == self.chord_type_j:
+            new_chord, _ = Chord.objects.get_or_create(
+                root=chord.root - self.transposition, chord_type=self.chord_type_i
+            )
+        return new_chord
+
+    def __str__(self):
+        return self.name
 
 
 class ChordVoicing(models.Model):
     chord = models.ForeignKey(Chord, on_delete=models.CASCADE, related_name="voicings")
     pitches = models.ManyToManyField(Pitch)
-
-    # class Meta:
-    #     unique_together = ("chord", "pitches")
 
     def clean(self):
         if not all([self.chord.notes in self.pitches.values_list("note", flat=True)]):

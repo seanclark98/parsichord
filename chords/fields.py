@@ -1,4 +1,4 @@
-from typing import List
+from __future__ import annotations
 
 from multiselectfield import MultiSelectField
 
@@ -8,15 +8,49 @@ from django.db import models
 from .constants import Interval, Note
 
 
-def parse_intervals(intervals: list) -> List[Interval]:
-    intervals = intervals.split(",")
-    return [Interval(int(ivl)) for ivl in intervals]
+class IntervalFormField(forms.TypedChoiceField):
+    def _coerce(self, value):
+        try:
+            return super()._coerce(int(value))
+        except (TypeError, ValueError):
+            return super()._coerce(None)
+
+
+class IntervalField(models.IntegerField):
+    def from_db_value(self, value, expression, connection):
+        if value is None:
+            return value
+        return Interval(value)
+
+    def to_python(self, value):
+        if isinstance(value, Interval):
+            return value
+
+        if value is None:
+            return value
+
+        return Interval(value)
+
+    def get_prep_value(self, value):
+        if value is None:
+            return None
+        return value.value
+
+    def formfield(self, **kwargs):
+        defaults = {"choices_form_class": IntervalFormField}
+        defaults.update(kwargs)
+        return super().formfield(**defaults)
+
+
+def parse_intervals(intervals: str) -> list[Interval]:
+    ivls = intervals.split(",")
+    return [Interval(int(ivl)) for ivl in ivls]
 
 
 class IntervalsField(MultiSelectField):
-    def from_db_value(self, value, expression, connection) -> List[Interval]:
-        if value is None:
-            return value
+    def from_db_value(self, value, expression, connection) -> list[Interval]:
+        if not value:
+            return []
         return parse_intervals(value)
 
 

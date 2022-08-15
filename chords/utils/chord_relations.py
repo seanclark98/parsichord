@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Callable
 
 from chords.fields import Interval
@@ -5,21 +6,62 @@ from chords.models import Chord, ChordType
 
 
 Transformation = Callable[[Chord], Chord]
-transformations: list[Transformation] = []
+triad_transformations: list[Transformation] = []
 
 
-def transformation(t: Transformation) -> Transformation:
-    transformations.append(t)
+def triad_transformation(t: Transformation) -> Transformation:
+    triad_transformations.append(t)
     return t
 
 
-@transformation
-def p(chord: Chord, i: ChordType, j: ChordType) -> Chord:
-    if chord.chord_type not in [i, j]:
-        return chord
+@triad_transformation
+def p_transformaiton(chord: Chord) -> Chord:
+    new_chord = chord
+    if chord.is_major():
+        new_chord, _ = Chord.objects.get_or_create(
+            root=chord.root, chord_type=ChordType.objects.get(name="Minor")
+        )
+    elif chord.is_minor():
+        new_chord, _ = Chord.objects.get_or_create(
+            root=chord.root, chord_type=ChordType.objects.get(name="Major")
+        )
+    return new_chord
 
-    trans_type = i if (chord.chord_type == j) else j
-    return Chord.objects.get_or_create(root=chord.root, chord_type=trans_type)
+
+@triad_transformation
+def l_transformaiton(chord: Chord) -> Chord:
+    new_chord = chord
+    if chord.is_major():
+        new_chord, _ = Chord.objects.get_or_create(
+            root=chord.root - 4, chord_type=ChordType.objects.get(name="Minor")
+        )
+    elif chord.is_minor():
+        new_chord, _ = Chord.objects.get_or_create(
+            root=chord.root + 4, chord_type=ChordType.objects.get(name="Major")
+        )
+    return new_chord
+
+
+@triad_transformation
+def r_transformaiton(chord: Chord) -> Chord:
+    new_chord = chord
+    if chord.is_major():
+        new_chord, _ = Chord.objects.get_or_create(
+            root=chord.root - 9, chord_type=ChordType.objects.get(name="Minor")
+        )
+    elif chord.is_minor():
+        new_chord, _ = Chord.objects.get_or_create(
+            root=chord.root + 9, chord_type=ChordType.objects.get(name="Major")
+        )
+    return new_chord
+
+
+# def p(chord: Chord, i: ChordType, j: ChordType) -> Chord:
+#     if chord.chord_type not in [i, j]:
+#         return chord
+
+#     trans_type = i if (chord.chord_type == j) else j
+#     return Chord.objects.get_or_create(root=chord.root, chord_type=trans_type)
 
 
 def alternate_subdominant(chord: Chord) -> Chord:
