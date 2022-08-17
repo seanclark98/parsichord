@@ -66,7 +66,7 @@ class Note(models.IntegerChoices):
         return Note((self.value - interval) % 12)
 
 
-class TriadNotes(Enum):
+class TriadIntervals(Enum):
     # fmt: off
     DIM = (
         Interval.PERFECT_FIRST, Interval.MINOR_THIRD, Interval.DIMINISHED_FIFTH
