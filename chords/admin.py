@@ -1,4 +1,6 @@
 from django.contrib import admin
+from django.core.exceptions import ValidationError
+from django.utils.translation import gettext_lazy as _
 from django import forms
 
 from .constants import Interval, Triad
@@ -33,11 +35,43 @@ class ChordVoicingForm(forms.ModelForm):
         model = ChordVoicing
         fields = ("chord", "pitches")
 
-    # def __init__(self, *args, **kwargs):
-    #     super().__init__(*args, **kwargs)
-    #     self.fields["pitches"].queryset = Pitch.objects.filter(
-    #         note__in=self.instance.chord.values_list("notes", flat=True)
-    #     )
+    def clean_pitches(self):
+        chord = self.cleaned_data.get("chord")
+        pitches = self.cleaned_data.get("pitches")
+
+        missing_notes = [
+            note.name for note in chord.notes
+            if note not in pitches.values_list("note", flat=True)
+        ]
+        if missing_notes:
+            raise ValidationError(
+                _(
+                    "Each note in %(chord)s must have a "
+                    "corresponding pitch in the chord voicing. Missing notes: %(notes)s"
+                ),
+                params={
+                    "chord": chord,
+                    "notes": missing_notes,
+                },
+            )
+
+        invalid_pitches = [
+            str(pitch) for pitch in pitches
+            if pitch.note not in chord.notes
+        ]
+        if invalid_pitches:
+            raise ValidationError(
+                _(
+                    "Invalid pitches: %(value)s. "
+                    "Each pitch must correspond to a note in %(chord)s (%(notes)s)"
+                ),
+                params={
+                    "value": str(invalid_pitches),
+                    "chord": str(chord),
+                    "notes": ", ".join([note.name for note in chord.notes]),
+                },
+            )
+        return pitches
 
 
 @admin.register(ChordVoicing)
