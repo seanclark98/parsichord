@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-from django.core.exceptions import ValidationError
 from django.db import models
-from django.utils.translation import gettext_lazy as _
 
 from .constants import Interval, Note, Triad, TriadIntervals
 from .fields import NoteField, IntervalField, IntervalsField
@@ -18,7 +16,7 @@ class Pitch(models.Model):
         unique_together = ("note", "octave")
 
     def __str__(self):
-        return f"{self.note.name}{self.octave}"
+        return f"{self.note.name}-{self.octave}"
 
 
 class Scale(models.Model):
@@ -135,12 +133,3 @@ class Relation(models.Model):
 class ChordVoicing(models.Model):
     chord = models.ForeignKey(Chord, on_delete=models.CASCADE, related_name="voicings")
     pitches = models.ManyToManyField(Pitch)
-
-    def clean(self):
-        if not all([self.chord.notes in self.pitches.values_list("note", flat=True)]):
-            ValidationError(
-                _(
-                    "Each note in the chord must have a "
-                    "corresponding pitch in the chord voicing."
-                )
-            )
