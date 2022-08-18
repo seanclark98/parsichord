@@ -95,13 +95,9 @@ class Chord(models.Model):
     def is_triad(self) -> bool:
         return self.is_tertian and len(self) == 3
 
-    _notes = None
-
     @property
     def notes(self) -> list[Note]:
-        if not self._notes:
-            self._notes = [self.root + ivl for ivl in self.chord_type.intervals]
-        return self._notes
+        return [self.root + ivl for ivl in self.chord_type.intervals]
 
 
 class Relation(models.Model):
