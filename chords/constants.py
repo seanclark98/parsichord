@@ -55,6 +55,9 @@ class Note(models.IntegerChoices):
     Bb = 10
     B = 11
 
+    def __str__(self):
+        return self.name
+
     def __add__(self, interval: int | Interval):
         if not type(interval) in [int, Interval]:
             raise TypeError("interval must be of type int or Interval.")
