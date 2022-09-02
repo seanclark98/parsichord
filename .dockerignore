@@ -1,0 +1,15 @@
+# Git
+parsichord/.git
+parsichord/.gitignore
+
+# Docker
+.docker
+
+# Python
+parsichord/__pycache__/
+parsichord/*/__pycache__/
+parsichord/*/*/__pycache__/
+parsichord/*/*/*/__pycache__/
+.env/
+.venv/
+venv/

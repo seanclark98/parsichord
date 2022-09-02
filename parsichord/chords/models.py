@@ -53,7 +53,8 @@ class ChordType(models.Model):
     def intervals(self) -> list[Interval]:
         basechord = list(TriadIntervals[self.base].value)
         seventh = [self.seventh] if self.seventh else []
-        intervals = basechord + seventh + self.extensions
+        extensions = self.extensions or []
+        intervals = basechord + seventh + extensions
         return intervals
 
     @property
