@@ -44,9 +44,7 @@ class ChordType(models.Model):
     name = models.CharField(max_length=30, unique=True)
     base = models.CharField(choices=Triad.choices, max_length=30)
     seventh = IntervalField(choices=Interval.choices, null=True, blank=True)
-    extensions = IntervalsField(
-        choices=Interval.choices, max_length=12, blank=True
-    )
+    extensions = IntervalsField(choices=Interval.choices, max_length=12, blank=True)
 
     def __str__(self):
         return self.name
@@ -66,7 +64,9 @@ class ChordType(models.Model):
 class Chord(models.Model):
     root = NoteField(choices=Note.choices)
     chord_type = models.ForeignKey(ChordType, on_delete=models.CASCADE)
-    notes = NotesField(choices=Note.choices, max_length=12, editable=False, default=set())
+    notes = NotesField(
+        choices=Note.choices, max_length=12, editable=False, default=set()
+    )
 
     class Meta:
         unique_together = ("root", "chord_type")
@@ -176,9 +176,7 @@ class ChordVoicing(models.Model):
         return closest_voicings.pop() if closest_voicings else None
 
 
-def get_voicings_by_pitches(
-    pitches: list[Pitch]
-) -> models.QuerySet[ChordVoicing]:
+def get_voicings_by_pitches(pitches: list[Pitch]) -> models.QuerySet[ChordVoicing]:
     qs = ChordVoicing.objects
     for pitch in pitches:
         qs = qs.filter(pitches=pitch)

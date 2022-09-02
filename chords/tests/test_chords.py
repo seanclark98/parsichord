@@ -35,7 +35,9 @@ class TestChordView(APITestCase):
 class TestChordVoicing(TestCase):
     def setUp(self):
         self.c_major = factory.ChordFactory.create()
-        pitches = [factory.PitchFactory.create(note=note) for note in [Note.C, Note.E, Note.G]]
+        pitches = [
+            factory.PitchFactory.create(note=note) for note in [Note.C, Note.E, Note.G]
+        ]
         self.chord_voicing = factory.ChordVoicingFactory.create(pitches=pitches)
 
         self.minor = factory.ChordTypeFactory.create(name="Minor", base=Triad.MINOR)
