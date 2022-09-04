@@ -7,3 +7,4 @@ exclude =
     settings.py,
     frontend,
     .venv
+max-line-length=88

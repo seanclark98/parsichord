@@ -53,4 +53,4 @@ class ChordVoicingFactory(factory.django.DjangoModelFactory):
 
 #     chord_type_a = factory.SubFactory(ChordTypeFactory)
 #     chord_type_b = factory.SubFactory(ChordTypeFactory)
-#     transposition = 
+#     transposition =
