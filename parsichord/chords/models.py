@@ -29,7 +29,8 @@ class Pitch(models.Model):
 class Scale(models.Model):
     name = models.CharField(max_length=30)
     notes = models.JSONField(
-        "Notes", default=list([Note.C, Note.D, Note.E, Note.F, Note.G, Note.A, Note.B])
+        "Notes",
+        default=lambda: [Note.C, Note.D, Note.E, Note.F, Note.G, Note.A, Note.B]
     )
 
     def __iter__(self):
