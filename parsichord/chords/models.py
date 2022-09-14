@@ -26,11 +26,15 @@ class Pitch(models.Model):
         return pitch
 
 
+def c_major_scale():
+    return [Note.C, Note.D, Note.E, Note.F, Note.G, Note.A, Note.B]
+
+
 class Scale(models.Model):
     name = models.CharField(max_length=30)
     notes = models.JSONField(
         "Notes",
-        default=lambda: [Note.C, Note.D, Note.E, Note.F, Note.G, Note.A, Note.B]
+        default=c_major_scale
     )
 
     def __iter__(self):
