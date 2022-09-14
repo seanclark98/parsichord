@@ -31,7 +31,7 @@ class IntervalField(models.IntegerField):
 
         return Interval(value)
 
-    def get_prep_value(self, value):
+    def get_prep_value(self, value: Interval | None) -> int | None:
         if value is None:
             return None
         return value.value
@@ -48,10 +48,39 @@ def parse_intervals(intervals: str) -> list[Interval]:
 
 
 class IntervalsField(MultiSelectField):
-    def from_db_value(self, value, expression, connection) -> list[Interval]:
+    def from_db_value(self, value: str, expression, connection) -> list[Interval]:
         if not value:
             return []
         return parse_intervals(value)
+
+
+def parse_notes(notes_str: str) -> set[Note]:
+    if not notes_str:
+        return set()
+    notes = notes_str.split(",")
+    return set(Note(int(note)) for note in notes)
+
+
+class NotesField(models.Field):
+    def from_db_value(self, value: str, expression, connection) -> set[Note]:
+        if not value:
+            return set()
+        return parse_notes(value)
+
+    def to_python(self, value: str) -> set[Note] | None:
+        if isinstance(value, set) and all([isinstance(note, Note) for note in value]):
+            return value
+
+        if value is None:
+            return value
+
+        return parse_notes(value)
+
+    def get_prep_value(self, value: list[Note]) -> str:
+        return ','.join([str(note.value) for note in value])
+
+    def get_internal_type(self) -> str:
+        return 'CharField'
 
 
 class NoteFormField(forms.TypedChoiceField):
@@ -63,12 +92,12 @@ class NoteFormField(forms.TypedChoiceField):
 
 
 class NoteField(models.IntegerField):
-    def from_db_value(self, value, expression, connection):
+    def from_db_value(self, value, expression, connection) -> Note | None:
         if value is None:
             return value
         return Note(value)
 
-    def to_python(self, value):
+    def to_python(self, value) -> Note | None:
         if isinstance(value, Note):
             return value
 
@@ -77,7 +106,7 @@ class NoteField(models.IntegerField):
 
         return Note(value)
 
-    def get_prep_value(self, value):
+    def get_prep_value(self, value) -> int:
         return value.value
 
     def formfield(self, **kwargs):

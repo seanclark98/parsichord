@@ -47,7 +47,8 @@ class ChordVoicingForm(forms.ModelForm):
             raise ValidationError(
                 _(
                     "Each note in %(chord)s must have a "
-                    "corresponding pitch in the chord voicing. Missing notes: %(notes)s"
+                    "corresponding pitch in the chord voicing. "
+                    "Missing notes: %(notes)s"
                 ),
                 params={
                     "chord": chord,
