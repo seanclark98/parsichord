@@ -2,6 +2,7 @@ from django.test import TestCase
 from rest_framework.test import APITestCase
 
 import chords.tests.utils.factory as factory
+from chords import models
 from ..constants import Note, Interval, Triad
 from ..models import Scale
 
@@ -33,6 +34,8 @@ class TestChordView(APITestCase):
 
 
 class TestChordVoicing(TestCase):
+    fixtures = ["pitch.json", "chord_type.json"]
+
     def setUp(self):
         self.c_major = factory.ChordFactory.create()
         pitches = [
@@ -58,3 +61,7 @@ class TestChordVoicing(TestCase):
         self.assertEqual(
             self.chord_voicing.find_closest_voicing(self.e_minor), self.e_minor_voicing
         )
+
+    def test_chords(self):
+        self.assertEqual(models.Pitch.objects.count(), 48)
+        self.assertEqual(models.ChordType.objects.count(), 12)

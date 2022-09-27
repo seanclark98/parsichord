@@ -1,0 +1,122 @@
+[
+{
+    "model": "chords.chordtype",
+    "pk": 1,
+    "fields": {
+        "name": "Major",
+        "base": "MAJ",
+        "seventh": null,
+        "extensions": ""
+    }
+},
+{
+    "model": "chords.chordtype",
+    "pk": 2,
+    "fields": {
+        "name": "Minor",
+        "base": "MIN",
+        "seventh": null,
+        "extensions": ""
+    }
+},
+{
+    "model": "chords.chordtype",
+    "pk": 3,
+    "fields": {
+        "name": "Augmented",
+        "base": "AUG",
+        "seventh": null,
+        "extensions": ""
+    }
+},
+{
+    "model": "chords.chordtype",
+    "pk": 4,
+    "fields": {
+        "name": "Diminished",
+        "base": "DIM",
+        "seventh": null,
+        "extensions": ""
+    }
+},
+{
+    "model": "chords.chordtype",
+    "pk": 5,
+    "fields": {
+        "name": "Major  7th",
+        "base": "MAJ",
+        "seventh": 11,
+        "extensions": ""
+    }
+},
+{
+    "model": "chords.chordtype",
+    "pk": 6,
+    "fields": {
+        "name": "Minor 7th",
+        "base": "MIN",
+        "seventh": 10,
+        "extensions": ""
+    }
+},
+{
+    "model": "chords.chordtype",
+    "pk": 7,
+    "fields": {
+        "name": "Dominant 7th",
+        "base": "MAJ",
+        "seventh": 10,
+        "extensions": ""
+    }
+},
+{
+    "model": "chords.chordtype",
+    "pk": 8,
+    "fields": {
+        "name": "Minor Major 7th",
+        "base": "MIN",
+        "seventh": 11,
+        "extensions": ""
+    }
+},
+{
+    "model": "chords.chordtype",
+    "pk": 9,
+    "fields": {
+        "name": "Half Diminished",
+        "base": "DIM",
+        "seventh": 10,
+        "extensions": ""
+    }
+},
+{
+    "model": "chords.chordtype",
+    "pk": 10,
+    "fields": {
+        "name": "Diminished 7th",
+        "base": "DIM",
+        "seventh": 9,
+        "extensions": ""
+    }
+},
+{
+    "model": "chords.chordtype",
+    "pk": 11,
+    "fields": {
+        "name": "Augmented 7th",
+        "base": "AUG",
+        "seventh": 10,
+        "extensions": ""
+    }
+},
+{
+    "model": "chords.chordtype",
+    "pk": 12,
+    "fields": {
+        "name": "Augmented Major 7th",
+        "base": "AUG",
+        "seventh": 11,
+        "extensions": ""
+    }
+}
+]
