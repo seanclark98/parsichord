@@ -1,4 +1,4 @@
-from .constants import Interval, Note, Triad, TriadIntervals
+from .constants import Interval, Note, Triad, triad_to_intervals
 
 
 class Pitch:
@@ -21,25 +21,8 @@ class Pitch:
         return pitch
 
 
-def c_major_scale():
-    return [Note.C, Note.D, Note.E, Note.F, Note.G, Note.A, Note.B]
-
-
-class Scale:
-    def __init__(self, name: str, notes: list[Note]):
-        self.name = name
-        self.notes = notes
-
-    def __iter__(self):
-        self.iternotes = iter(self.notes)
-        return self
-
-    def __next__(self):
-        return next(self.iternotes)
-
-
 class ChordType:
-    def __init__(self, name: str, base: Triad, seventh: Interval, extensions: list[Interval]):
+    def __init__(self, name: str, base: Triad, seventh: Interval | None = None, extensions: list[Interval] | None = None):
         self.name = name
         self.base = base
         self.seventh = seventh
@@ -50,22 +33,22 @@ class ChordType:
 
     @property
     def intervals(self) -> list[Interval]:
-        basechord = list(TriadIntervals[self.base].value)
+        basechord = list(triad_to_intervals[self.base])
         seventh = [self.seventh] if self.seventh else []
         extensions = self.extensions or []
         intervals = basechord + seventh + extensions
         return intervals
 
     @property
-    def relations(self) -> list[Relation]:
+    def relations(self) -> list["Relation"]:
         return self.ascending_relations.all() | self.descending_relations.all()
 
 
 class Chord:
-    def __init__(self, root: Note, chord_type: ChordType, notes: list[Note]):
+    def __init__(self, root: Note, chord_type: ChordType):
         self.root = root
         self.chord_type = chord_type
-        self.notes = notes
+        self.notes = [root + ivl for ivl in chord_type.intervals]
 
     # class Meta:
     #     unique_together = ("root", "chord_type")
@@ -73,7 +56,7 @@ class Chord:
     def __str__(self):
         return f"{self.root.name} {self.chord_type.name}"
 
-    def __add__(self, interval: int) -> Chord:
+    def __add__(self, interval: int) -> "Chord":
         return Chord(
             root=self.root + interval, chord_type=self.chord_type
         )
@@ -109,7 +92,7 @@ class Chord:
         super().save(*args, **kwargs)
 
     @property
-    def parsimonious_chords(self) -> set[Chord]:
+    def parsimonious_chords(self) -> set["Chord"]:
         n = len(self.notes)
         chords = set()
         notes_list = list(self.notes)
@@ -162,26 +145,20 @@ class ChordVoicing:
     #                 voicings.add(voicing)
     #     return voicings
 
-    def find_closest_voicing(self, chord: Chord) -> ChordVoicing | None:
-        closest_voicings = self.find_closest_voicings(chord)
-        return closest_voicings.pop() if closest_voicings else None
+    # def find_closest_voicing(self, chord: Chord) -> ChordVoicing | None:
+    #     closest_voicings = self.find_closest_voicings(chord)
+    #     return closest_voicings.pop() if closest_voicings else None
 
     def validate_pitches(self):
         missing_notes = [
             note.name for note in self.chord.notes
-            if note not in self.pitches.values_list("note", flat=True)
+            if note not in [pitch.note for pitch in self.pitches]
         ]
         if missing_notes:
             raise ValueError(
-                (
-                    "Each note in %(chord)s must have a "
-                    "corresponding pitch in the chord voicing. "
-                    "Missing notes: %(notes)s"
-                ),
-                params={
-                    "chord": self.chord,
-                    "notes": missing_notes,
-                },
+                f"Each note in {self.chord} must have a "
+                "corresponding pitch in the chord voicing. "
+                f"Missing notes: {missing_notes}"
             )
 
         invalid_pitches = [
@@ -190,15 +167,8 @@ class ChordVoicing:
         ]
         if invalid_pitches:
             raise ValueError(
-                (
-                    "Invalid pitches: %(value)s. "
-                    "Each pitch must correspond to a note in %(chord)s (%(notes)s)"
-                ),
-                params={
-                    "value": str(invalid_pitches),
-                    "chord": str(self.chord),
-                    "notes": ", ".join([note.name for note in self.chord.notes]),
-                },
+                f"Invalid pitches: {invalid_pitches}. "
+                f"Each pitch must correspond to a note in {str(self.chord)} ({self.chord.notes})"
             )
 
 # def get_voicings_by_pitches(pitches: list[Pitch]) -> list[ChordVoicing]:

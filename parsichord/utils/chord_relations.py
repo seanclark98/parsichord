@@ -1,8 +1,7 @@
-from __future__ import annotations
 from typing import Callable
 
-from chords.fields import Interval
-from chords.models import Chord, ChordType
+from parsichord.constants import Interval
+from parsichord.chords import Chord, ChordType
 
 
 Transformation = Callable[[Chord], Chord]
@@ -16,44 +15,41 @@ def triad_transformation(t: Transformation) -> Transformation:
 
 @triad_transformation
 def p_transformaiton(chord: Chord) -> Chord:
-    new_chord = chord
     if chord.is_major():
-        new_chord, _ = Chord.objects.get_or_create(
-            root=chord.root, chord_type=ChordType.objects.get(name="Minor")
+        return Chord(
+            root=chord.root, chord_type=ChordType(name="Minor")
         )
-    elif chord.is_minor():
-        new_chord, _ = Chord.objects.get_or_create(
-            root=chord.root, chord_type=ChordType.objects.get(name="Major")
+    if chord.is_minor():
+        return Chord(
+            root=chord.root, chord_type=ChordType(name="Major")
         )
-    return new_chord
+    return chord
 
 
 @triad_transformation
 def l_transformaiton(chord: Chord) -> Chord:
-    new_chord = chord
     if chord.is_major():
-        new_chord, _ = Chord.objects.get_or_create(
+        return Chord(
             root=chord.root - 4, chord_type=ChordType.objects.get(name="Minor")
         )
-    elif chord.is_minor():
-        new_chord, _ = Chord.objects.get_or_create(
+    if chord.is_minor():
+        return Chord(
             root=chord.root + 4, chord_type=ChordType.objects.get(name="Major")
         )
-    return new_chord
+    return chord
 
 
 @triad_transformation
 def r_transformaiton(chord: Chord) -> Chord:
-    new_chord = chord
     if chord.is_major():
-        new_chord, _ = Chord.objects.get_or_create(
+        return Chord(
             root=chord.root - 9, chord_type=ChordType.objects.get(name="Minor")
         )
-    elif chord.is_minor():
-        new_chord, _ = Chord.objects.get_or_create(
+    if chord.is_minor():
+        return Chord(
             root=chord.root + 9, chord_type=ChordType.objects.get(name="Major")
         )
-    return new_chord
+    return chord
 
 
 # def p(chord: Chord, i: ChordType, j: ChordType) -> Chord:
