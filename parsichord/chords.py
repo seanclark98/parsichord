@@ -1,3 +1,6 @@
+from itertools import product
+from typing import Iterable
+
 from .constants import Interval, Note, Triad, triad_to_intervals
 
 
@@ -12,6 +15,9 @@ class Pitch:
 
     def __str__(self):
         return f"{self.note.name}-{self.octave}"
+
+    def __repr__(self):
+        return f"<Pitch {self.note.name}{self.octave}>"
 
     def __add__(self, ivl):
         note = self.note + ivl
@@ -39,22 +45,25 @@ class ChordType:
         intervals = basechord + seventh + extensions
         return intervals
 
-    @property
-    def relations(self) -> list["Relation"]:
-        return self.ascending_relations.all() | self.descending_relations.all()
+    # @property
+    # def relations(self) -> list["Relation"]:
+    #     return self.ascending_relations.all() | self.descending_relations.all()
 
 
 class Chord:
     def __init__(self, root: Note, chord_type: ChordType):
         self.root = root
         self.chord_type = chord_type
-        self.notes = [root + ivl for ivl in chord_type.intervals]
+        self.notes = frozenset([root + ivl for ivl in chord_type.intervals])
 
     # class Meta:
     #     unique_together = ("root", "chord_type")
 
     def __str__(self):
         return f"{self.root.name} {self.chord_type.name}"
+
+    def __repr__(self):
+        return f"<Chord {self.root.name} {self.chord_type.name}>"
 
     def __add__(self, interval: int) -> "Chord":
         return Chord(
@@ -87,11 +96,6 @@ class Chord:
     def update_notes(self):
         self.notes = set(self.root + ivl for ivl in self.chord_type.intervals)
 
-    def save(self, *args, **kwargs):
-        self.update_notes()
-        super().save(*args, **kwargs)
-
-    @property
     def parsimonious_chords(self) -> set["Chord"]:
         n = len(self.notes)
         chords = set()
@@ -100,8 +104,24 @@ class Chord:
             for ivl in [-2, -1, 1, 2]:
                 notes_copy = notes_list[:]
                 notes_copy[i] += ivl
-                chords.add(Chord(notes=set(notes_copy)))
+                chord = Chord.from_notes(notes=set(notes_copy))
+                if chord:
+                    chords.add(chord)
         return chords
+
+    @staticmethod
+    def from_notes(notes: Iterable) -> "Chord | None":
+        for chord in triads:
+            if set(chord.notes) == set(notes):
+                return chord
+        return None
+
+
+triads = []
+
+for root, triad in product(list(Note), list(Triad)):
+    chord_type = ChordType(name=triad.value, base=triad)
+    triads.append(Chord(root, chord_type))
 
 
 class Relation:
@@ -129,25 +149,33 @@ class Relation:
 class ChordVoicing:
     def __init__(self, chord: Chord, pitches: list[Pitch]):
         self.chord = chord
-        self.pitches = pitches
+        self.pitches = frozenset(pitches)
         self.validate_pitches()
 
-    # def find_closest_voicings(self, chord: Chord) -> set[ChordVoicing]:
-    #     n = len(self.pitches.all())
-    #     voicings = set()
-    #     pitches_list = list(self.pitches.all())
-    #     for i in range(n):
-    #         for ivl in [-2, -1, 1, 2]:
-    #             pitches_copy = pitches_list[:]
-    #             pitches_copy[i] += ivl
-    #             voicing = get_voicings_by_pitches(pitches_copy).first()
-    #             if voicing:
-    #                 voicings.add(voicing)
-    #     return voicings
+    # TODO: make chord voicing hashable
 
-    # def find_closest_voicing(self, chord: Chord) -> ChordVoicing | None:
-    #     closest_voicings = self.find_closest_voicings(chord)
-    #     return closest_voicings.pop() if closest_voicings else None
+    def __eq__(self, other):
+        if self.chord != other.chord:
+            return False
+        if self.pitches != other.pitches:
+            return False
+        return True
+
+    def find_closest_voicings(self) -> set["ChordVoicing"]:
+        n = len(self.pitches)
+        voicings = set()
+        pitches_list = list(self.pitches)
+        for i in range(n):
+            for ivl in [-2, -1, 1, 2]:
+                pitches_copy = pitches_list[:]
+                pitches_copy[i] += ivl
+                chord = Chord.from_notes([pitch.note for pitch in pitches_copy])
+                if not chord:
+                    continue
+                voicing = ChordVoicing(chord, pitches_copy)
+                if voicing:
+                    voicings.add(voicing)
+        return voicings
 
     def validate_pitches(self):
         missing_notes = [
@@ -171,8 +199,5 @@ class ChordVoicing:
                 f"Each pitch must correspond to a note in {str(self.chord)} ({self.chord.notes})"
             )
 
-# def get_voicings_by_pitches(pitches: list[Pitch]) -> list[ChordVoicing]:
-#     qs = ChordVoicing.objects
-#     for pitch in pitches:
-#         qs = qs.filter(pitches=pitch)
-#     return qs
+    def __repr__(self):
+        return f"<ChordVoicing {self.chord} {self.pitches}"

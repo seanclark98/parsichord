@@ -76,10 +76,10 @@ class Note(Enum):
 
 
 class Triad(Enum):
-    DIMINISHED = "DIM", "Diminished"
-    MINOR = "MIN", "Minor"
-    MAJOR = "MAJ", "Major"
-    AUGMENTED = "AUG", "Augmented"
+    DIMINISHED = "Diminished"
+    MINOR = "Minor"
+    MAJOR = "Major"
+    AUGMENTED = "Augmented"
 
 
 triad_to_intervals = {

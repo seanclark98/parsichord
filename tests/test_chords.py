@@ -43,6 +43,6 @@ class TestChordVoicing:
             f"Missing notes: ['E', 'G']"
         )
 
-
-    # def test_voice_leading(self):
-    #     assert self.chord_voicing.find_closest_voicing(self.e_minor) == self.e_minor_voicing
+    @pytest.mark.xfail
+    def test_voice_leading(self):
+        assert self.e_minor_voicing in self.c_major_voicing.find_closest_voicings()
