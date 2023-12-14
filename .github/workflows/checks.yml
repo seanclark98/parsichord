@@ -6,7 +6,7 @@ on: [push]
 jobs:
   test-lint:
     name: Test and Lint
-    runs-on: 3.12.1-alpine3.19
+    runs-on: python:alpine3.19
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
