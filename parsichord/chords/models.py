@@ -1,16 +1,11 @@
-from __future__ import annotations
-
-from django.db import models
-
 from .constants import Interval, Note, Triad, TriadIntervals
-from .fields import NoteField, NotesField, IntervalField, IntervalsField
 
 
-class Pitch(models.Model):
+class Pitch:
     # note = "pitch-class" in musical set theory
-    note = NoteField(choices=Note.choices)
-    octave = models.IntegerField()
-    audio = models.FileField(upload_to="audio/", null=True, blank=True)
+    def __init__(self, note: Note, octave: int):
+        self.note = note
+        self.octave = octave
 
     class Meta:
         unique_together = ("note", "octave")
@@ -22,7 +17,7 @@ class Pitch(models.Model):
         note = self.note + ivl
         value = self.note.value + ivl
         octave = self.octave + (value // 12)
-        pitch, _ = Pitch.objects.get_or_create(note=note, octave=octave)
+        pitch = Pitch(note=note, octave=octave)
         return pitch
 
 
@@ -30,12 +25,10 @@ def c_major_scale():
     return [Note.C, Note.D, Note.E, Note.F, Note.G, Note.A, Note.B]
 
 
-class Scale(models.Model):
-    name = models.CharField(max_length=30)
-    notes = models.JSONField(
-        "Notes",
-        default=c_major_scale
-    )
+class Scale:
+    def __init__(self, name: str, notes: list[Note]):
+        self.name = name
+        self.notes = notes
 
     def __iter__(self):
         self.iternotes = iter(self.notes)
@@ -45,11 +38,12 @@ class Scale(models.Model):
         return next(self.iternotes)
 
 
-class ChordType(models.Model):
-    name = models.CharField(max_length=30, unique=True)
-    base = models.CharField(choices=Triad.choices, max_length=30)
-    seventh = IntervalField(choices=Interval.choices, null=True, blank=True)
-    extensions = IntervalsField(choices=Interval.choices, max_length=12, blank=True)
+class ChordType:
+    def __init__(self, name: str, base: Triad, seventh: Interval, extensions: list[Interval]):
+        self.name = name
+        self.base = base
+        self.seventh = seventh
+        self.extensions = extensions
 
     def __str__(self):
         return self.name
@@ -63,28 +57,26 @@ class ChordType(models.Model):
         return intervals
 
     @property
-    def relations(self) -> models.QuerySet[Relation]:
+    def relations(self) -> list[Relation]:
         return self.ascending_relations.all() | self.descending_relations.all()
 
 
-class Chord(models.Model):
-    root = NoteField(choices=Note.choices)
-    chord_type = models.ForeignKey(ChordType, on_delete=models.CASCADE)
-    notes = NotesField(
-        choices=Note.choices, max_length=12, editable=False, default=set()
-    )
+class Chord:
+    def __init__(self, root: Note, chord_type: ChordType, notes: list[Note]):
+        self.root = root
+        self.chord_type = chord_type
+        self.notes = notes
 
-    class Meta:
-        unique_together = ("root", "chord_type")
+    # class Meta:
+    #     unique_together = ("root", "chord_type")
 
     def __str__(self):
         return f"{self.root.name} {self.chord_type.name}"
 
     def __add__(self, interval: int) -> Chord:
-        new_chord, _ = Chord.objects.get_or_create(
+        return Chord(
             root=self.root + interval, chord_type=self.chord_type
         )
-        return new_chord
 
     def __len__(self):
         return len(self.notes)
@@ -110,10 +102,7 @@ class Chord(models.Model):
         return self.is_tertian and len(self) == 3
 
     def update_notes(self):
-        notes = set()
-        for ivl in self.chord_type.intervals:
-            notes.add(self.root + ivl)
-        self.notes = notes
+        self.notes = set(self.root + ivl for ivl in self.chord_type.intervals)
 
     def save(self, *args, **kwargs):
         self.update_notes()
@@ -128,62 +117,92 @@ class Chord(models.Model):
             for ivl in [-2, -1, 1, 2]:
                 notes_copy = notes_list[:]
                 notes_copy[i] += ivl
-                chord = Chord.objects.filter(notes=set(notes_copy)).first()
-                if chord:
-                    chords.add(chord)
+                chords.add(Chord(notes=set(notes_copy)))
         return chords
 
 
-class Relation(models.Model):
-    name = models.CharField(max_length=30)
-    chord_type_a = models.ForeignKey(
-        ChordType, on_delete=models.CASCADE, related_name="ascending_relations"
-    )
-    chord_type_b = models.ForeignKey(
-        ChordType, on_delete=models.CASCADE, related_name="descending_relations"
-    )
-    transposition = IntervalField()
+class Relation:
+    def __init__(self, name: str, chord_type_a: ChordType, chord_type_b: ChordType, transposition: Interval):
+        self.name = name
+        self.chord_type_a = chord_type_a
+        self.chord_type_b = chord_type_b
+        self.transposition = transposition
 
     def __call__(self, chord: Chord) -> Chord:
-        new_chord = chord
         if chord.chord_type == self.chord_type_a:
-            new_chord, _ = Chord.objects.get_or_create(
+            return Chord(
                 root=chord.root + self.transposition, chord_type=self.chord_type_b
             )
         elif chord.chord_type == self.chord_type_b:
-            new_chord, _ = Chord.objects.get_or_create(
+            return Chord(
                 root=chord.root - self.transposition, chord_type=self.chord_type_a
             )
-        return new_chord
+        return chord
 
     def __str__(self):
         return self.name
 
 
-class ChordVoicing(models.Model):
-    chord = models.ForeignKey(Chord, on_delete=models.CASCADE, related_name="voicings")
-    pitches = models.ManyToManyField(Pitch)
+class ChordVoicing:
+    def __init__(self, chord: Chord, pitches: list[Pitch]):
+        self.chord = chord
+        self.pitches = pitches
+        self.validate_pitches()
 
-    def find_closest_voicings(self, chord: Chord) -> set[ChordVoicing]:
-        n = len(self.pitches.all())
-        voicings = set()
-        pitches_list = list(self.pitches.all())
-        for i in range(n):
-            for ivl in [-2, -1, 1, 2]:
-                pitches_copy = pitches_list[:]
-                pitches_copy[i] += ivl
-                voicing = get_voicings_by_pitches(pitches_copy).first()
-                if voicing:
-                    voicings.add(voicing)
-        return voicings
+    # def find_closest_voicings(self, chord: Chord) -> set[ChordVoicing]:
+    #     n = len(self.pitches.all())
+    #     voicings = set()
+    #     pitches_list = list(self.pitches.all())
+    #     for i in range(n):
+    #         for ivl in [-2, -1, 1, 2]:
+    #             pitches_copy = pitches_list[:]
+    #             pitches_copy[i] += ivl
+    #             voicing = get_voicings_by_pitches(pitches_copy).first()
+    #             if voicing:
+    #                 voicings.add(voicing)
+    #     return voicings
 
     def find_closest_voicing(self, chord: Chord) -> ChordVoicing | None:
         closest_voicings = self.find_closest_voicings(chord)
         return closest_voicings.pop() if closest_voicings else None
 
+    def validate_pitches(self):
+        missing_notes = [
+            note.name for note in self.chord.notes
+            if note not in self.pitches.values_list("note", flat=True)
+        ]
+        if missing_notes:
+            raise ValueError(
+                (
+                    "Each note in %(chord)s must have a "
+                    "corresponding pitch in the chord voicing. "
+                    "Missing notes: %(notes)s"
+                ),
+                params={
+                    "chord": self.chord,
+                    "notes": missing_notes,
+                },
+            )
 
-def get_voicings_by_pitches(pitches: list[Pitch]) -> models.QuerySet[ChordVoicing]:
-    qs = ChordVoicing.objects
-    for pitch in pitches:
-        qs = qs.filter(pitches=pitch)
-    return qs
+        invalid_pitches = [
+            str(pitch) for pitch in self.pitches
+            if pitch.note not in self.chord.notes
+        ]
+        if invalid_pitches:
+            raise ValueError(
+                (
+                    "Invalid pitches: %(value)s. "
+                    "Each pitch must correspond to a note in %(chord)s (%(notes)s)"
+                ),
+                params={
+                    "value": str(invalid_pitches),
+                    "chord": str(self.chord),
+                    "notes": ", ".join([note.name for note in self.chord.notes]),
+                },
+            )
+
+# def get_voicings_by_pitches(pitches: list[Pitch]) -> list[ChordVoicing]:
+#     qs = ChordVoicing.objects
+#     for pitch in pitches:
+#         qs = qs.filter(pitches=pitch)
+#     return qs

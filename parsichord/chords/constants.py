@@ -1,11 +1,9 @@
-from __future__ import annotations
-
-from enum import Enum
-
-from django.db import models
+from aenum import Enum, NoAlias
 
 
-class Interval(models.IntegerChoices):
+class Interval(Enum):
+    _settings_ = NoAlias
+
     PERFECT_FIRST = 0, "P1"
     MINOR_SECOND = 1, "m2"
     MAJOR_SECOND = 2, "M2"
@@ -41,7 +39,9 @@ class Interval(models.IntegerChoices):
         return Interval((self.value - ivl) % 12)
 
 
-class Note(models.IntegerChoices):
+class Note(Enum):
+    _settings_ = NoAlias
+
     C = 0
     Db = 1
     D = 2
@@ -86,15 +86,8 @@ class TriadIntervals(Enum):
     # fmt: on
 
 
-class Triad(models.TextChoices):
+class Triad(Enum):
     DIMINISHED = "DIM", "Diminished"
     MINOR = "MIN", "Minor"
     MAJOR = "MAJ", "Major"
     AUGMENTED = "AUG", "Augmented"
-
-
-# class ChordBase(models.Choices):
-#     DIMINISHED = Triad.DIMINISHED, "Diminished"
-#     MINOR = Triad.MINOR, "Minor"
-#     MAJOR = Triad.MAJOR, "Major"
-#     AUGMENTED = Triad.AUGMENTED, "Augmented"

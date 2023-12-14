@@ -46,11 +46,3 @@ class ChordVoicingFactory(factory.django.DjangoModelFactory):
             for pitch in extracted:
                 self.pitches.add(pitch)
 
-
-# class ChordRelation(factory.django.DjangoModelFactory):
-#     class Meta:
-#         model = models.Relation
-
-#     chord_type_a = factory.SubFactory(ChordTypeFactory)
-#     chord_type_b = factory.SubFactory(ChordTypeFactory)
-#     transposition =
