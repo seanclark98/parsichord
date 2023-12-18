@@ -83,8 +83,16 @@ class Triad(Enum):
 
 
 triad_to_intervals = {
-    Triad.DIMINISHED: (Interval.PERFECT_FIRST, Interval.MINOR_THIRD, Interval.DIMINISHED_FIFTH),
+    Triad.DIMINISHED: (
+        Interval.PERFECT_FIRST,
+        Interval.MINOR_THIRD,
+        Interval.DIMINISHED_FIFTH,
+    ),
     Triad.MINOR: (Interval.PERFECT_FIRST, Interval.MINOR_THIRD, Interval.PERFECT_FIFTH),
     Triad.MAJOR: (Interval.PERFECT_FIRST, Interval.MAJOR_THIRD, Interval.PERFECT_FIFTH),
-    Triad.AUGMENTED: (Interval.PERFECT_FIRST, Interval.MAJOR_THIRD, Interval.MINOR_SIXTH),
+    Triad.AUGMENTED: (
+        Interval.PERFECT_FIRST,
+        Interval.MAJOR_THIRD,
+        Interval.MINOR_SIXTH,
+    ),
 }

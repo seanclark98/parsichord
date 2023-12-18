@@ -16,10 +16,8 @@ class TestChordVoicing:
         notes = [Note.C, Note.E, Note.G]
         self.c_major = Chord(root=Note.C, chord_type=major)
         pitches = [Pitch(note=note, octave=4) for note in notes]
-        print(pitches)
-        self.c_major_voicing = ChordVoicing(chord=self.c_major, pitches=pitches)
+        self.c_major_voicing = ChordVoicing(chord=self.c_major, pitches=tuple(pitches))
 
-        e_minor_notes = [Note.C, Note.E, Note.G]
         minor = ChordType(name="Minor", base=Triad.MINOR)
         self.e_minor = Chord(root=Note.E, chord_type=minor)
         pitches = [
@@ -28,7 +26,7 @@ class TestChordVoicing:
             Pitch(note=Note.B, octave=3),
         ]
         self.e_minor_voicing = ChordVoicing(
-            chord=self.e_minor, pitches=pitches
+            chord=self.e_minor, pitches=tuple(pitches)
         )
 
     def test_chord_voicing(self):
@@ -43,6 +41,5 @@ class TestChordVoicing:
             f"Missing notes: ['E', 'G']"
         )
 
-    @pytest.mark.xfail
     def test_voice_leading(self):
         assert self.e_minor_voicing in self.c_major_voicing.find_closest_voicings()

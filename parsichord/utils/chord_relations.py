@@ -16,13 +16,9 @@ def triad_transformation(t: Transformation) -> Transformation:
 @triad_transformation
 def p_transformaiton(chord: Chord) -> Chord:
     if chord.is_major():
-        return Chord(
-            root=chord.root, chord_type=ChordType(name="Minor")
-        )
+        return Chord(root=chord.root, chord_type=ChordType(name="Minor"))
     if chord.is_minor():
-        return Chord(
-            root=chord.root, chord_type=ChordType(name="Major")
-        )
+        return Chord(root=chord.root, chord_type=ChordType(name="Major"))
     return chord
 
 
