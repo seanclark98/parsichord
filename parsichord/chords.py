@@ -1,18 +1,26 @@
-from dataclasses import dataclass
 from itertools import product
 from typing import Iterable
 
 from .constants import Interval, Note, Triad, triad_to_intervals
 
 
-@dataclass(frozen=True)
 class Pitch:
     # note = "pitch-class" in musical set theory
-    note: Note
-    octave: int
+    def __init__(self, note: Note, octave: int):
+        self.note = note
+        self.octave = octave
+
+    def __str__(self):
+        return f"{self.note.name}{self.octave}"
 
     def __repr__(self):
-        return f"{self.note.name}{self.octave}"
+        return f"Pitch({self.note}, {self.octave})"
+
+    def __eq__(self, other):
+        return self.note == other.note and self.octave == other.octave
+
+    def __hash__(self):
+        return hash((self.note, self.octave))
 
     def __add__(self, ivl):
         note = self.note + ivl
@@ -22,12 +30,15 @@ class Pitch:
         return pitch
 
 
-@dataclass(frozen=True)
 class ChordType:
-    name: str
-    base: Triad
-    seventh: Interval | None = None
-    extensions: tuple[Interval] | None = None
+    def __init__(self, name: str, base: Triad, seventh: Interval | None = None, extensions: list[Interval] | None = None):
+        self.name = name
+        self.base = base
+        self.seventh = seventh
+        self.extensions = extensions
+
+    def __str__(self):
+        return self.name
 
     @property
     def intervals(self) -> list[Interval]:
@@ -42,20 +53,21 @@ class ChordType:
     #     return self.ascending_relations.all() | self.descending_relations.all()
 
 
-@dataclass(frozen=True)
 class Chord:
-    root: Note
-    chord_type: ChordType
+    def __init__(self, root: Note, chord_type: ChordType):
+        self.root = root
+        self.chord_type = chord_type
+        # self.notes = frozenset([root + ivl for ivl in chord_type.intervals])
 
     @property
     def notes(self):
         return [self.root + ivl for ivl in self.chord_type.intervals]
 
-    # def __str__(self):
-    #     return f"{self.root.name} {self.chord_type.name}"
-
-    def __repr__(self):
+    def __str__(self):
         return f"{self.root.name} {self.chord_type.name}"
+
+    # def __repr__(self):
+    #     return f"{self.root.name} {self.chord_type.name}"
 
     def __add__(self, interval: int) -> "Chord":
         return Chord(root=self.root + interval, chord_type=self.chord_type)
@@ -139,10 +151,11 @@ class Relation:
         return self.name
 
 
-@dataclass(frozen=True)
 class ChordVoicing:
-    chord: Chord
-    pitches: tuple[Pitch]
+    def __init__(self, chord: Chord, pitches: list[Pitch]):
+        self.chord = chord
+        self.pitches = frozenset(pitches)
+        self.validate_pitches()
 
     def __repr__(self):
         return f"{self.chord} {self.pitches}"
