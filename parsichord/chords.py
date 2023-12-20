@@ -141,34 +141,6 @@ for root, triad in product(list(Note), list(Triad)):
     triads.append(Chord(root, chord_type))
 
 
-class Relation:
-    def __init__(
-        self,
-        name: str,
-        chord_type_a: ChordType,
-        chord_type_b: ChordType,
-        transposition: Interval,
-    ):
-        self.name = name
-        self.chord_type_a = chord_type_a
-        self.chord_type_b = chord_type_b
-        self.transposition = transposition
-
-    def __call__(self, chord: Chord) -> Chord:
-        if chord.chord_type == self.chord_type_a:
-            return Chord(
-                root=chord.root + self.transposition, chord_type=self.chord_type_b
-            )
-        elif chord.chord_type == self.chord_type_b:
-            return Chord(
-                root=chord.root - self.transposition, chord_type=self.chord_type_a
-            )
-        return chord
-
-    def __str__(self) -> str:
-        return self.name
-
-
 class ChordVoicing:
     def __init__(self, chord: Chord, pitches: list[Pitch]):
         self.chord = chord
