@@ -1,9 +1,7 @@
-from aenum import Enum, NoAlias
+from enum import Enum
 
 
 class Interval(Enum):
-    # _settings_ = NoAlias
-
     PERFECT_FIRST = 0  # , "P1"
     MINOR_SECOND = 1  # , "m2"
     MAJOR_SECOND = 2  # , "M2"
@@ -30,13 +28,13 @@ class Interval(Enum):
     MAJOR_THIRTEENTH = 21  # , "M13"
     AUGMENTED_THIRTEENTH = 22  # , "aug13"
 
-    def __add__(self, interval: int | Interval):
+    def __add__(self, interval: "int | Interval") -> "Interval":
         if not isinstance(interval, int | Interval):
             raise TypeError("interval must be of type int or Interval.")
         ivl = interval.value if isinstance(interval, Interval) else interval
         return Interval((self.value + ivl) % 12)
 
-    def __sub__(self, interval: int | Interval):
+    def __sub__(self, interval: "int | Interval") -> "Interval":
         if not isinstance(interval, int | Interval):
             raise TypeError("interval must be of type int or Interval.")
         ivl = interval.value if isinstance(interval, Interval) else interval
@@ -59,16 +57,16 @@ class Note(Enum):
     Bb = 10
     B = 11
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
-    def __add__(self, interval: int | Interval):
+    def __add__(self, interval: int | Interval) -> "Note":
         if not isinstance(interval, int | Interval):
             raise TypeError("interval must be of type int or Interval.")
         ivl = interval.value if isinstance(interval, Interval) else interval
         return Note((self.value + ivl) % 12)
 
-    def __sub__(self, interval: int | Interval):
+    def __sub__(self, interval: int | Interval) -> "Note":
         if not isinstance(interval, int | Interval):
             raise TypeError("interval must be of type int or Interval.")
         ivl = interval.value if isinstance(interval, Interval) else interval

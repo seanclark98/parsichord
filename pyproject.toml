@@ -1,0 +1,18 @@
+[tool.isort]
+profile = 'black'
+line_length = 88
+combine_as_imports = true
+
+[tool.docformatter]
+wrap-summaries = 79
+wrap-descriptions = 72
+pre-summary-newline = true
+
+[tool.black]
+extend-exclude = '''
+    /(
+         \.git
+       | \.mypy_cache
+       | \*.ini
+    )/
+'''
