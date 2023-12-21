@@ -1,29 +1,29 @@
 import pytest
 
 from parsichord.chords import Chord, ChordType, ChordVoicing, Pitch
-from parsichord.constants import Interval, Note, Triad
+from parsichord.constants import Interval, PitchClass, Triad
 
 
-class TestNotes:
+class TestPitchClasss:
     def test_note_transposition(self) -> None:
-        assert Note.C + Interval.PERFECT_FIFTH == Note.G
-        assert Note.C - Interval.PERFECT_FIFTH == Note.F
+        assert PitchClass.C + Interval.PERFECT_FIFTH == PitchClass.G
+        assert PitchClass.C - Interval.PERFECT_FIFTH == PitchClass.F
 
 
 class TestChordVoicing:
     def setup(self) -> None:
         major = ChordType(name="Major", base=Triad.MAJOR)
-        notes = [Note.C, Note.E, Note.G]
-        self.c_major = Chord(root=Note.C, chord_type=major)
-        pitches = [Pitch(note=note, octave=4) for note in notes]
+        self.c_major = Chord(root=PitchClass.C, chord_type=major)
+        pitch_classes = [PitchClass.C.value, PitchClass.E.value, PitchClass.G.value]
+        pitches = [Pitch(value=pitch_class, octave=4) for pitch_class in pitch_classes]
         self.c_major_voicing = ChordVoicing(chord=self.c_major, pitches=pitches)
 
         minor = ChordType(name="Minor", base=Triad.MINOR)
-        self.e_minor = Chord(root=Note.E, chord_type=minor)
+        self.e_minor = Chord(root=PitchClass.E, chord_type=minor)
         pitches = [
-            Pitch(note=Note.E, octave=4),
-            Pitch(note=Note.G, octave=4),
-            Pitch(note=Note.B, octave=3),
+            Pitch(value=PitchClass.E.value, octave=4),
+            Pitch(value=PitchClass.G.value, octave=4),
+            Pitch(value=PitchClass.B.value, octave=3),
         ]
         self.e_minor_voicing = ChordVoicing(chord=self.e_minor, pitches=pitches)
 
@@ -34,7 +34,10 @@ class TestChordVoicing:
         with pytest.raises(ValueError) as excinfo:
             ChordVoicing(
                 self.c_major,
-                [Pitch(note=Note.C, octave=4), Pitch(note=Note.D, octave=4)],
+                [
+                    Pitch(value=PitchClass.C.value, octave=4),
+                    Pitch(value=PitchClass.D.value, octave=4),
+                ],
             )
         assert str(excinfo.value) == (
             f"Each note in {self.c_major} must have a "

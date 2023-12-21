@@ -41,9 +41,7 @@ class Interval(Enum):
         return Interval((self.value - ivl) % 12)
 
 
-class Note(Enum):
-    # _settings_ = NoAlias
-
+class PitchClass(Enum):
     C = 0
     Db = 1
     D = 2
@@ -60,17 +58,17 @@ class Note(Enum):
     def __str__(self) -> str:
         return self.name
 
-    def __add__(self, interval: int | Interval) -> "Note":
+    def __add__(self, interval: int | Interval) -> "PitchClass":
         if not isinstance(interval, int | Interval):
             raise TypeError("interval must be of type int or Interval.")
         ivl = interval.value if isinstance(interval, Interval) else interval
-        return Note((self.value + ivl) % 12)
+        return PitchClass((self.value + ivl) % 12)
 
-    def __sub__(self, interval: int | Interval) -> "Note":
+    def __sub__(self, interval: int | Interval) -> "PitchClass":
         if not isinstance(interval, int | Interval):
             raise TypeError("interval must be of type int or Interval.")
         ivl = interval.value if isinstance(interval, Interval) else interval
-        return Note((self.value - ivl) % 12)
+        return PitchClass((self.value - ivl) % 12)
 
 
 class Triad(Enum):

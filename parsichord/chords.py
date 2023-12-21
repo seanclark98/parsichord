@@ -1,38 +1,36 @@
 from itertools import product
 from typing import Iterable
 
-from .constants import Interval, Note, Triad, triad_to_intervals
+from pyabc import Pitch as ABCPitch
+
+from .constants import Interval, PitchClass, Triad, triad_to_intervals
 
 
-class Pitch:
-    # note = "pitch-class" in musical set theory
-    def __init__(self, note: Note, octave: int):
-        self.note = note
-        self.octave = octave
-
-    def __str__(self) -> str:
-        return f"{self.note.name}{self.octave}"
-
-    def __repr__(self) -> str:
-        return f"Pitch({self.note}, {self.octave})"
-
-    def __eq__(self, other: object) -> bool:
-        return (
-            isinstance(other, Pitch)
-            and self.note == other.note
-            and self.octave == other.octave
-        )
-
+class Pitch(ABCPitch):
     def __hash__(self) -> int:
-        return hash((self.note, self.octave))
+        return hash((self.value, self.octave))
 
-    def __add__(self, ivl: Interval | int) -> "Pitch":
-        note = self.note + ivl
-        ivl = ivl.value if isinstance(ivl, Interval) else ivl
-        value = self.note.value + int(ivl)
-        octave = self.octave + (value // 12)
-        pitch = Pitch(note=note, octave=octave)
-        return pitch
+    def __add__(self, ivl: int) -> "Pitch":
+        return Pitch(super().__add__(ivl))
+
+    def __sub__(self, ivl: int) -> "Pitch":
+        return Pitch(super().__sub__(ivl))
+
+    @property
+    def equivalent_flat(self) -> "Pitch":
+        return Pitch(super().equivalent_flat())
+
+    @property
+    def equivalent_sharp(self) -> "Pitch":
+        return Pitch(super().equivalent_sharp())
+
+    @property
+    def pitch_class(self) -> PitchClass:
+        return PitchClass(self.value)
+
+    @staticmethod
+    def pitch_value(pitch: "Pitch", root: str = "C") -> "Pitch":
+        return Pitch(super().pitch_value(pitch, root))
 
 
 class ChordType:
@@ -59,10 +57,6 @@ class ChordType:
         intervals = basechord + seventh + extensions
         return intervals
 
-    # @property
-    # def relations(self) -> list["Relation"]:
-    #     return self.ascending_relations.all() | self.descending_relations.all()
-
 
 # Triads
 Augmented = ChordType(name="Augmented", base=Triad.AUGMENTED)
@@ -72,14 +66,9 @@ Minor = ChordType(name="Minor", base=Triad.MINOR)
 
 
 class Chord:
-    def __init__(self, root: Note, chord_type: ChordType):
+    def __init__(self, root: PitchClass, chord_type: ChordType):
         self.root = root
         self.chord_type = chord_type
-        # self.notes = frozenset([root + ivl for ivl in chord_type.intervals])
-
-    @property
-    def notes(self) -> list[Note]:
-        return [self.root + ivl for ivl in self.chord_type.intervals]
 
     def __str__(self) -> str:
         return f"{self.root.name} {self.chord_type.name}"
@@ -91,16 +80,20 @@ class Chord:
         return Chord(root=self.root + interval, chord_type=self.chord_type)
 
     def __len__(self) -> int:
-        return len(self.notes)
+        return len(self.pitch_classes)
 
-    def __getitem__(self, interval: Interval) -> Note | None:
-        return note if (note := self.root + interval) in self.notes else None
+    def __getitem__(self, interval: Interval) -> PitchClass | None:
+        return (
+            pitch_class
+            if (pitch_class := self.root + interval) in self.pitch_classes
+            else None
+        )
 
     def is_major(self) -> bool:
-        return self.root + Interval.MAJOR_THIRD in self.notes
+        return self.root + Interval.MAJOR_THIRD in self.pitch_classes
 
     def is_minor(self) -> bool:
-        return self.root + Interval.MINOR_THIRD in self.notes
+        return self.root + Interval.MINOR_THIRD in self.pitch_classes
 
     def is_tertian(self) -> bool:
         return all(
@@ -114,29 +107,38 @@ class Chord:
         return self.is_tertian() and len(self) == 3
 
     def parsimonious_chords(self) -> set["Chord"]:
-        n = len(self.notes)
+        n = len(self.pitch_classes)
         chords = set()
-        notes_list = list(self.notes)
+        notes_list = list(self.pitch_classes)
         for i in range(n):
-            for ivl in [-2, -1, 1, 2]:
+            for ivl in [
+                -Interval.MAJOR_SECOND.value,
+                -Interval.MINOR_SECOND.value,
+                Interval.MINOR_SECOND.value,
+                Interval.MAJOR_SECOND.value,
+            ]:
                 notes_copy = notes_list[:]
                 notes_copy[i] += ivl
-                chord = Chord.from_notes(notes=set(notes_copy))
+                chord = Chord.from_pitch_classes(pitch_classes=set(notes_copy))
                 if chord:
                     chords.add(chord)
         return chords
 
+    @property
+    def pitch_classes(self) -> list[PitchClass]:
+        return [self.root + ivl for ivl in self.chord_type.intervals]
+
     @staticmethod
-    def from_notes(notes: Iterable) -> "Chord | None":
+    def from_pitch_classes(pitch_classes: Iterable) -> "Chord | None":
         for chord in triads:
-            if set(chord.notes) == set(notes):
+            if set(chord.pitch_classes) == set(pitch_classes):
                 return chord
         return None
 
 
 triads = []
 
-for root, triad in product(list(Note), list(Triad)):
+for root, triad in product(list(PitchClass), list(Triad)):
     chord_type = ChordType(name=triad.value, base=triad)
     triads.append(Chord(root, chord_type))
 
@@ -169,9 +171,11 @@ class ChordVoicing:
                 Interval.MINOR_SECOND.value,
                 Interval.MAJOR_SECOND.value,
             ]:
-                pitches_copy = pitches_list[:]
+                pitches_copy: list = pitches_list[:]
                 pitches_copy[i] += ivl
-                chord = Chord.from_notes([pitch.note for pitch in pitches_copy])
+                chord = Chord.from_pitch_classes(
+                    [pitch.pitch_class for pitch in pitches_copy]
+                )
                 if not chord:
                     continue
                 voicing = ChordVoicing(chord, pitches_copy)
@@ -180,24 +184,26 @@ class ChordVoicing:
         return voicings
 
     def validate_pitches(self) -> None:
-        missing_notes = [
-            note.name
-            for note in self.chord.notes
-            if note not in [pitch.note for pitch in self.pitches]
+        missing_pitches = [
+            pitch.name
+            for pitch in self.chord.pitch_classes
+            if pitch not in [pitch.pitch_class for pitch in self.pitches]
         ]
-        if missing_notes:
+        if missing_pitches:
             raise ValueError(
                 f"Each note in {self.chord} must have a "
                 "corresponding pitch in the chord voicing. "
-                f"Missing notes: {missing_notes}"
+                f"Missing notes: {missing_pitches}"
             )
 
         invalid_pitches = [
-            str(pitch) for pitch in self.pitches if pitch.note not in self.chord.notes
+            str(pitch)
+            for pitch in self.pitches
+            if pitch.pitch_class not in self.chord.pitch_classes
         ]
         if invalid_pitches:
             raise ValueError(
                 f"Invalid pitches: {invalid_pitches}. "
                 "Each pitch must correspond to a note in "
-                f"{str(self.chord)} ({self.chord.notes})"
+                f"{str(self.chord)} ({self.chord.pitch_classes})"
             )
