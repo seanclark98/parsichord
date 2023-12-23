@@ -1,12 +1,20 @@
 from itertools import product
 from typing import Iterable
 
-from pyabc import Pitch as ABCPitch
+import pyabc
+from pyabc import Note, Pitch as ABCPitch
 
 from .constants import Interval, PitchClass, Triad, triad_to_intervals
 
 
 class Pitch(ABCPitch):
+    def __init__(
+        self, value: "Note | Pitch | PitchClass | int | str", octave: int | None = None
+    ):
+        if isinstance(value, PitchClass):
+            value = value.value
+        super().__init__(value, octave)
+
     def __hash__(self) -> int:
         return hash((self.value, self.octave))
 
@@ -28,9 +36,8 @@ class Pitch(ABCPitch):
     def pitch_class(self) -> PitchClass:
         return PitchClass(self.value)
 
-    @staticmethod
-    def pitch_value(pitch: "Pitch", root: str = "C") -> "Pitch":
-        return Pitch(super().pitch_value(pitch, root))
+
+pyabc.Pitch = Pitch
 
 
 class ChordType:
@@ -71,10 +78,18 @@ class Chord:
         self.chord_type = chord_type
 
     def __str__(self) -> str:
-        return f"{self.root.name} {self.chord_type.name}"
+        return f"{self.root.name}{self.chord_type.name[:3].lower()}"
 
-    # def __repr__(self):
-    #     return f"{self.root.name} {self.chord_type.name}"
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self.root.name} {self.chord_type.name})"
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, Chord) and set(self.pitch_classes) == set(
+            other.pitch_classes
+        )
+
+    def __hash__(self) -> int:
+        return hash(frozenset(self.pitch_classes))
 
     def __add__(self, interval: Interval | int) -> "Chord":
         return Chord(root=self.root + interval, chord_type=self.chord_type)
