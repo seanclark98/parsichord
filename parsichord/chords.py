@@ -24,6 +24,17 @@ class Pitch(ABCPitch):
     def __sub__(self, ivl: int) -> "Pitch":
         return Pitch(super().__sub__(ivl))
 
+    def __str__(self) -> str:
+        pitch_class = PitchClass(self.value)
+        note = pitch_class.name[0]
+        flat = True if pitch_class.name.find("b") != -1 else False
+        if self.octave > 0:
+            note = note.lower()
+            note += "'" * (self.octave - 1)
+        else:
+            note += "," * (-self.octave)
+        return ("_" if flat else "") + note
+
     @property
     def equivalent_flat(self) -> "Pitch":
         return Pitch(super().equivalent_flat())
@@ -35,6 +46,16 @@ class Pitch(ABCPitch):
     @property
     def pitch_class(self) -> PitchClass:
         return PitchClass(self.value)
+
+    @property
+    def abc(self) -> str:
+        if self.octave > 0:
+            return self.name.lower() + "'" * (self.octave - 1)
+        return self.name.upper() + "," * (self.octave - 1)
+
+    @property
+    def midi_value(self) -> int:
+        return self.octave * 12 + self.value + 48
 
 
 pyabc.Pitch = Pitch
