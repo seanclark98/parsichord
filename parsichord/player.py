@@ -20,6 +20,8 @@ class Player:
         self.stop_arpeggio = False
         self.speed = 0.12
 
+        self.timesteps = self.parse_tune()
+
     def arpeggiate(self, event: threading.Event) -> Generator[Note, None, None]:
         if self.chord is None:
             raise AttributeError(
@@ -45,17 +47,18 @@ class Player:
             self.piano.play_note(note.pitch.midi_value + 24, volume, 3, blocking=False)
             sleep(self.speed / 2)
 
-    def play_chord(self) -> None:
+    def play_chord(self, chord: list[Note]) -> None:
         volume = 0.5
-        if self.chord is None:
+        if chord is None:
             return
 
         self.cello.play_chord(
-            [note.pitch.midi_value for note in self.chord], volume, 9, blocking=False
+            [note.pitch.midi_value for note in chord], volume, 9, blocking=False
         )
 
-    def play_jig(self) -> None:
-        self.playhead = 0
+    def parse_tune(self) -> list[tuple[Note | None, list[Note] | None]]:
+        timesteps: list[tuple[Note | None, list[Note] | None]] = []
+
         in_chord = False
         for token in self.tune.tokens:
             if isinstance(token, ChordBracket) and token._text == "[":
@@ -71,21 +74,29 @@ class Player:
                 continue
 
             if isinstance(token, Note) and not in_chord:
-                match self.playhead % 3:
-                    case 0:
-                        intensity = 1.0
-                        stretch = 1.1
-                    case 1:
-                        intensity = 0.5
-                        stretch = 0.9
-                    case 2:
-                        intensity = 0.7
-                        stretch = 1.0
+                timesteps.append((token, chord))
+                if token.duration > 1:
+                    timesteps.extend([(None, None)] * int(token.duration - 1))
 
+        return timesteps
+
+    def play_jig(self) -> None:
+        for playhead, (token, chord) in enumerate(self.timesteps):
+            match playhead % 3:
+                case 0:
+                    intensity = 1.0
+                    stretch = 1.1
+                case 1:
+                    intensity = 0.5
+                    stretch = 0.9
+                case 2:
+                    intensity = 0.7
+                    stretch = 1.0
+
+            if token is not None:
                 self.piano.play_note(
                     token.pitch.midi_value, intensity, token.duration * stretch
                 )
-                if self.playhead % 6 == 0:
-                    self.play_chord()
-                self.playhead += token.duration
-                sleep(token.duration * self.speed * stretch)
+            if playhead % 6 == 0 and chord is not None:
+                self.play_chord(chord)
+            sleep(self.speed * stretch)
