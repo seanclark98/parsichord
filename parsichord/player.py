@@ -9,11 +9,11 @@ from parsichord.chords import Note, Pitch
 
 
 class Player:
-    def __init__(self, tune: Tune):
+    def __init__(self, tune: Tune, melody: str = "harp", accompaniment: str = "cello"):
         self.session = scamp.Session().run_as_server()
         self.session.tempo = 360
-        self.piano = self.session.new_part("piano")
-        self.cello = self.session.new_part("cello")
+        self.melody = self.session.new_part(melody)
+        self.accompaniment = self.session.new_part(accompaniment)
         self.tune = tune
         self.playhead = 0
         self.chord: list | None = None
@@ -44,7 +44,7 @@ class Player:
         volume = 0.5
 
         for note in self.arpeggiate(event):
-            self.piano.play_note(note.pitch.midi_value + 24, volume, 3, blocking=False)
+            self.melody.play_note(note.pitch.midi_value + 24, volume, 3, blocking=False)
             sleep(self.speed / 2)
 
     def play_chord(self, chord: list[Note]) -> None:
@@ -52,8 +52,8 @@ class Player:
         if chord is None:
             return
 
-        self.cello.play_chord(
-            [note.pitch.midi_value for note in chord], volume, 9, blocking=False
+        self.accompaniment.play_chord(
+            [note.pitch.midi_value for note in chord], volume, 10, blocking=False
         )
 
     def parse_tune(self) -> list[tuple[Note | None, list[Note] | None]]:
@@ -80,23 +80,42 @@ class Player:
 
         return timesteps
 
-    def play_jig(self) -> None:
+    def play_jig(
+        self,
+        play_melody: bool = True,
+        play_chords: bool = True,
+        speed: float | None = None,
+        swing: float = 1,
+        slip: bool = False,
+    ) -> None:
+        if speed is not None:
+            self.speed = speed
+
+        if slip:
+            beats_per_bar = 3
+        else:
+            beats_per_bar = 2
+
         for playhead, (token, chord) in enumerate(self.timesteps):
             match playhead % 3:
                 case 0:
                     intensity = 1.0
-                    stretch = 1.1
+                    stretch = (swing / (swing + 1)) * 2
                 case 1:
                     intensity = 0.5
-                    stretch = 0.9
+                    stretch = (1 / (swing + 1)) * 2
                 case 2:
                     intensity = 0.7
                     stretch = 1.0
 
-            if token is not None:
-                self.piano.play_note(
+            if token is not None and play_melody:
+                self.melody.play_note(
                     token.pitch.midi_value, intensity, token.duration * stretch
                 )
-            if playhead % 6 == 0 and chord is not None:
+            if (
+                playhead % (beats_per_bar * 3) == 0
+                and chord is not None
+                and play_chords
+            ):
                 self.play_chord(chord)
             sleep(self.speed * stretch)

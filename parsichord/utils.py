@@ -1,5 +1,4 @@
 from collections import deque
-from typing import Iterable
 
 from pyabc import ChordBracket, ChordSymbol, Note, Token, Tune
 
@@ -76,10 +75,22 @@ def nearest_parsimonious_chord_voicing_containing(
     raise NotFound(f"No path from {chord_voicing} to ChordVoicing containing {pitch}")
 
 
-def chord_voicing_tokens(token: Token, pitches: Iterable[Pitch]) -> list[Token]:
+def chord_voicing_tokens(token: Token, chord_voicing: ChordVoicing) -> list[Token]:
+    pitches = sorted(chord_voicing.pitches, key=lambda p: p.abs_value)
     chord_open_bracket = ChordBracket(line=token._line, char=token._char, text="[")
     chord_closed_bracket = ChordBracket(line=token._line, char=token._char, text="]")
     return [chord_open_bracket, *pitches, chord_closed_bracket]
+
+
+def create_chord_symbol(token: Token, chord_voicing: ChordVoicing) -> ChordSymbol:
+    return ChordSymbol(
+        line=token._line, char=token._char, text=f'"{chord_voicing.chord}"'
+    )
+
+
+def chord_tokens(token: Token, chord_voicing: ChordVoicing) -> list[Token]:
+    chord_symbol = create_chord_symbol(token, chord_voicing)
+    return [chord_symbol, *chord_voicing_tokens(token, chord_voicing)]
 
 
 def harmonize_with_voicings(tune: Tune, chord_voicing: ChordVoicing) -> ChordVoicing:
@@ -98,18 +109,45 @@ def harmonize_with_voicings(tune: Tune, chord_voicing: ChordVoicing) -> ChordVoi
         chord_voicing = nearest_parsimonious_chord_voicing_containing(
             chord_voicing, pitch
         )
-        # chord = nearest_parsimonious_chord_containing_pitch_class(chord, pitch_class)
         if chord_voicing != previous_chord_voicing:
-            chord_symbol = ChordSymbol(
-                line=token._line, char=token._char, text=f'"{chord_voicing.chord}"'
-            )
-            pitches = sorted(chord_voicing.pitches, key=lambda p: p.abs_value)
-            new_tokens.extend(
-                [chord_symbol, *chord_voicing_tokens(token, pitches), note]
-            )
+            new_tokens.extend(chord_tokens(token, chord_voicing))
+            new_tokens.append(note)
             previous_chord_voicing = chord_voicing
         else:
             new_tokens.append(note)
+
+    abc = tune.compose_header_abc() + "".join(str(token) for token in new_tokens)
+    return Tune(abc=abc)
+
+
+def harmonize_with_voicings_on_beat(
+    tune: Tune, chord_voicing: ChordVoicing
+) -> ChordVoicing:
+    previous_chord_voicing = None
+    tokens = tune.tokens
+    new_tokens = []
+    playhead = 0
+
+    for token in tokens:
+        if chord_voicing is None:
+            return None
+        if not isinstance(token, Note):
+            new_tokens.append(token)
+            continue
+
+        note = token
+        pitch = note.pitch
+        chord_voicing = nearest_parsimonious_chord_voicing_containing(
+            chord_voicing, pitch
+        )
+        if chord_voicing != previous_chord_voicing and playhead % 6 == 0:
+            new_tokens.extend(chord_tokens(token, chord_voicing))
+            new_tokens.append(note)
+            previous_chord_voicing = chord_voicing
+        else:
+            new_tokens.append(note)
+
+        playhead += note.duration
 
     abc = tune.compose_header_abc() + "".join(str(token) for token in new_tokens)
     return Tune(abc=abc)
