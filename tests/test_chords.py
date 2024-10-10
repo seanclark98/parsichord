@@ -10,6 +10,22 @@ class TestPitchClasss:
         assert PitchClass.C - Interval.PERFECT_FIFTH == PitchClass.F
 
 
+class TestChordType:
+    @pytest.mark.parametrize(
+        "chord_type,abbr",
+        [
+            (ChordType("", Triad.MAJOR, Interval.MAJOR_SEVENTH), "maj7"),
+            (ChordType("", Triad.MAJOR, Interval.MINOR_SEVENTH), "7"),
+            (ChordType("", Triad.MINOR, Interval.MAJOR_SEVENTH), "minM7"),
+            (ChordType("", Triad.MINOR, Interval.MINOR_SEVENTH), "min7"),
+            (ChordType("", Triad.DIMINISHED, Interval.MINOR_SEVENTH), "min7b5"),
+            (ChordType("", Triad.DIMINISHED, Interval.MAJOR_SIXTH), "dim7"),
+        ],
+    )
+    def test_abbr(self, chord_type: ChordType, abbr: str) -> None:
+        assert chord_type.abbr == abbr
+
+
 class TestChordVoicing:
     def setup(self) -> None:
         major = ChordType(name="Major", base=Triad.MAJOR)
