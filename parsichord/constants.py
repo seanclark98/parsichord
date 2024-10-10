@@ -40,6 +40,37 @@ class Interval(Enum):
         ivl = interval.value if isinstance(interval, Interval) else interval
         return Interval((self.value - ivl) % 12)
 
+    @property
+    def abbr(self) -> str:
+        abbreviations = [
+            "P1",
+            "m2",
+            "M2",
+            "m3",
+            "M3",
+            "P4",
+            "dim5",
+            "P5",
+            # "aug5",
+            "m6",
+            "M6",
+            # "dim7",
+            "m7",
+            "M7",
+            "(8)",
+            "m9",
+            "M9",
+            "m10",
+            "M10",
+            "P11",
+            "aug11",
+            "P12",
+            "m13",
+            "M13",
+            "aug13",
+        ]
+        return abbreviations[self.value]
+
 
 class PitchClass(Enum):
     C = 0

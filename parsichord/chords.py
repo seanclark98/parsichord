@@ -1,5 +1,6 @@
+from copy import deepcopy
 from itertools import product
-from typing import Iterable
+from typing import Collection
 
 import pyabc
 from pyabc import Note, Pitch as ABCPitch
@@ -78,6 +79,27 @@ class ChordType:
         return self.name
 
     @property
+    def abbr(self) -> str:
+        chord_type_abbr = self.base.value[:3].lower()
+        if self.seventh is not None:
+            if (
+                (chord_type_abbr == "min" and self.seventh == Interval.MINOR_SEVENTH)
+                or (chord_type_abbr == "maj" and self.seventh == Interval.MAJOR_SEVENTH)
+                or (chord_type_abbr == "dim" and self.seventh == Interval.MAJOR_SIXTH)
+            ):
+                chord_type_abbr += "7"
+            elif chord_type_abbr == "dim" and self.seventh == Interval.MINOR_SEVENTH:
+                chord_type_abbr = "min7b5"
+            elif chord_type_abbr == "maj" and self.seventh == Interval.MINOR_SEVENTH:
+                chord_type_abbr = "7"
+            else:
+                chord_type_abbr += self.seventh.abbr
+        if self.extensions is not None:
+            extensions = ",".join([ext.abbr for ext in self.extensions])
+            chord_type_abbr += f"({extensions})"
+        return chord_type_abbr
+
+    @property
     def intervals(self) -> list[Interval]:
         basechord = list(triad_to_intervals[self.base])
         seventh = [self.seventh] if self.seventh else []
@@ -99,7 +121,7 @@ class Chord:
         self.chord_type = chord_type
 
     def __str__(self) -> str:
-        return f"{self.root.name}{self.chord_type.name[:3].lower()}"
+        return f"{self.root.name}{self.chord_type.abbr}"
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.root.name} {self.chord_type.name})"
@@ -165,18 +187,38 @@ class Chord:
         return [self.root + ivl for ivl in self.chord_type.intervals]
 
     @staticmethod
-    def from_pitch_classes(pitch_classes: Iterable) -> "Chord | None":
-        for chord in triads:
+    def from_pitch_classes(pitch_classes: Collection) -> "Chord | None":
+        if len(pitch_classes) == 3:
+            chords = triads
+        elif len(pitch_classes) == 4:
+            chords = seventh_chords
+        else:
+            return NotImplemented
+        for chord in chords:
             if set(chord.pitch_classes) == set(pitch_classes):
                 return chord
         return None
 
 
-triads = []
+triads: list[Chord] = []
+seventh_chords = []
 
 for root, triad in product(list(PitchClass), list(Triad)):
     chord_type = ChordType(name=triad.value, base=triad)
     triads.append(Chord(root, chord_type))
+
+for triad_chord, interval in product(
+    triads, [Interval.MINOR_THIRD, Interval.MAJOR_THIRD]
+):
+    fifth = triad_chord.chord_type.intervals[-1]
+    seventh = fifth + interval
+    if seventh in triad_chord.chord_type.intervals:
+        continue
+    seventh_chord_type = deepcopy(triad_chord.chord_type)
+    seventh_chord_type.seventh = seventh
+    seventh_chord_type.name = f"{triad_chord.chord_type} {seventh.abbr}"
+    seventh_chord = Chord(triad_chord.root, seventh_chord_type)
+    seventh_chords.append(seventh_chord)
 
 
 class ChordVoicing:
@@ -208,6 +250,8 @@ class ChordVoicing:
                 Interval.MAJOR_SECOND.value,
             ]:
                 pitches_copy: list = pitches_list[:]
+                if pitches_copy[i] + ivl in pitches_list:
+                    continue
                 pitches_copy[i] += ivl
                 chord = Chord.from_pitch_classes(
                     [pitch.pitch_class for pitch in pitches_copy]
