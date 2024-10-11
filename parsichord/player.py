@@ -96,6 +96,7 @@ class Player:
         else:
             beats_per_bar = 2
 
+        last_chord = None
         for playhead, (token, chord) in enumerate(self.timesteps):
             match playhead % 3:
                 case 0:
@@ -116,6 +117,8 @@ class Player:
                 playhead % (beats_per_bar * 3) == 0
                 and chord is not None
                 and play_chords
+                and chord != last_chord
             ):
                 self.play_chord(chord)
+                last_chord = chord
             sleep(self.speed * stretch)
