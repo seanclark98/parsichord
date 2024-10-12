@@ -3,9 +3,9 @@ from time import sleep
 from typing import Generator
 
 import scamp
-from pyabc import ChordBracket, Tune
 
-from parsichord.chords import Note, Pitch
+from parsichord.chords import ChordVoicing, Note
+from parsichord.tune import Tune
 
 
 class Player:
@@ -19,8 +19,6 @@ class Player:
         self.chord: list | None = None
         self.stop_arpeggio = False
         self.speed = 0.12
-
-        self.timesteps = self.parse_tune()
 
     def arpeggiate(self, event: threading.Event) -> Generator[Note, None, None]:
         if self.chord is None:
@@ -47,38 +45,11 @@ class Player:
             self.melody.play_note(note.pitch.midi_value + 24, volume, 3, blocking=False)
             sleep(self.speed / 2)
 
-    def play_chord(self, chord: list[Note]) -> None:
+    def play_chord(self, chord: ChordVoicing) -> None:
         volume = 0.5
-        if chord is None:
-            return
-
         self.accompaniment.play_chord(
-            [note.pitch.midi_value for note in chord], volume, 10, blocking=False
+            [pitch.midi_value for pitch in chord.pitches], volume, 10, blocking=False
         )
-
-    def parse_tune(self) -> list[tuple[Note | None, list[Note] | None]]:
-        timesteps: list[tuple[Note | None, list[Note] | None]] = []
-
-        in_chord = False
-        for token in self.tune.tokens:
-            if isinstance(token, ChordBracket) and token._text == "[":
-                chord = []
-                in_chord = True
-                continue
-            if isinstance(token, Pitch | Note) and in_chord:
-                chord.append(token)
-                continue
-            if isinstance(token, ChordBracket) and token._text == "]":
-                self.chord = chord
-                in_chord = False
-                continue
-
-            if isinstance(token, Note) and not in_chord:
-                timesteps.append((token, chord))
-                if token.duration > 1:
-                    timesteps.extend([(None, None)] * int(token.duration - 1))
-
-        return timesteps
 
     def play_jig(
         self,
@@ -97,7 +68,7 @@ class Player:
             beats_per_bar = 2
 
         last_chord = None
-        for playhead, (token, chord) in enumerate(self.timesteps):
+        for playhead, note in enumerate(self.tune.notes):
             match playhead % 3:
                 case 0:
                     intensity = 1.0
@@ -109,10 +80,12 @@ class Player:
                     intensity = 0.7
                     stretch = 1.0
 
-            if token is not None and play_melody:
+            if note is not None and play_melody:
                 self.melody.play_note(
-                    token.pitch.midi_value, intensity, token.duration * stretch
+                    note.pitch.midi_value, intensity, note.duration * stretch
                 )
+
+            chord = self.tune.chord(playhead)
             if (
                 playhead % (beats_per_bar * 3) == 0
                 and chord is not None
@@ -120,5 +93,6 @@ class Player:
                 and chord != last_chord
             ):
                 self.play_chord(chord)
+                print(chord)
                 last_chord = chord
             sleep(self.speed * stretch)

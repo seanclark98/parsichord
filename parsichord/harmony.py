@@ -1,9 +1,10 @@
 from collections import deque
 
-from pyabc import ChordBracket, ChordSymbol, Note, Token, Tune
+from pyabc import ChordBracket, ChordSymbol, Note, Token
 
 from parsichord.chords import Chord, ChordVoicing, Pitch
 from parsichord.constants import PitchClass
+from parsichord.tune import Tune
 
 
 class NotFound(Exception):
@@ -93,61 +94,35 @@ def chord_tokens(token: Token, chord_voicing: ChordVoicing) -> list[Token]:
     return [chord_symbol, *chord_voicing_tokens(token, chord_voicing)]
 
 
-def harmonize_with_voicings(tune: Tune, chord_voicing: ChordVoicing) -> ChordVoicing:
-    previous_chord_voicing = None
-    tokens = tune.tokens
-    new_tokens = []
+class HarmonisationStrategy:
+    def __init__(self, harmonic_rhythm: int = 1):
+        # notes per chord
+        self.harmonic_rhythm = harmonic_rhythm
 
-    for token in tokens:
-        if chord_voicing is None:
-            return None
-        if not isinstance(token, Note):
-            new_tokens.append(token)
-            continue
-        note = token
-        pitch = note.pitch
-        chord_voicing = nearest_parsimonious_chord_voicing_containing(
-            chord_voicing, pitch
-        )
-        if chord_voicing != previous_chord_voicing:
-            new_tokens.extend(chord_tokens(token, chord_voicing))
-            new_tokens.append(note)
-            previous_chord_voicing = chord_voicing
-        else:
-            new_tokens.append(note)
+    def harmonize(self, tune: Tune, chord_voicing: ChordVoicing) -> None:
+        previous_chord_voicing = None
+        # new_tokens = []
 
-    abc = tune.compose_header_abc() + "".join(str(token) for token in new_tokens)
-    return Tune(abc=abc)
+        for playhead, note in enumerate(tune.notes):
+            if chord_voicing is None:
+                raise
+            if note is None:
+                continue
 
+            pitch = note.pitch
+            chord_voicing = nearest_parsimonious_chord_voicing_containing(
+                chord_voicing, pitch
+            )
+            if (
+                chord_voicing != previous_chord_voicing
+                and playhead % self.harmonic_rhythm == 0
+            ):
+                # new_tokens.extend(chord_tokens(note, chord_voicing))
+                # new_tokens.append(note)
+                # previous_chord_voicing = chord_voicing
+                tune._chords[playhead] = chord_voicing
+            # else:
+            #     new_tokens.append(note)
 
-def harmonize_with_voicings_on_beat(
-    tune: Tune, chord_voicing: ChordVoicing
-) -> ChordVoicing:
-    previous_chord_voicing = None
-    tokens = tune.tokens
-    new_tokens = []
-    playhead = 0
-
-    for token in tokens:
-        if chord_voicing is None:
-            return None
-        if not isinstance(token, Note):
-            new_tokens.append(token)
-            continue
-
-        note = token
-        pitch = note.pitch
-        chord_voicing = nearest_parsimonious_chord_voicing_containing(
-            chord_voicing, pitch
-        )
-        if chord_voicing != previous_chord_voicing and playhead % 6 == 0:
-            new_tokens.extend(chord_tokens(token, chord_voicing))
-            new_tokens.append(note)
-            previous_chord_voicing = chord_voicing
-        else:
-            new_tokens.append(note)
-
-        playhead += note.duration
-
-    abc = tune.compose_header_abc() + "".join(str(token) for token in new_tokens)
-    return Tune(abc=abc)
+        # abc = tune.compose_header_abc() + "".join(str(token) for token in new_tokens)
+        # return Tune(abc=abc)
