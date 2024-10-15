@@ -67,7 +67,7 @@ class Player:
         else:
             beats_per_bar = 2
 
-        last_chord = None
+        # last_chord = None
         for playhead, note in enumerate(self.tune.notes):
             match playhead % 3:
                 case 0:
@@ -90,9 +90,54 @@ class Player:
                 playhead % (beats_per_bar * 3) == 0
                 and chord is not None
                 and play_chords
-                and chord != last_chord
+                # and chord != last_chord
             ):
                 self.play_chord(chord)
                 print(chord)
-                last_chord = chord
+                # last_chord = chord
+            sleep(self.speed * stretch)
+
+    def play_reel(
+        self,
+        play_melody: bool = True,
+        play_chords: bool = True,
+        speed: float | None = None,
+        swing: float = 1,
+    ) -> None:
+        if speed is not None:
+            self.speed = speed
+
+        beats_per_bar = 4
+
+        # last_chord = None
+        for playhead, note in enumerate(self.tune.notes):
+            match playhead % 4:
+                case 0:
+                    intensity = 1.0
+                    stretch = (swing / (swing + 1)) * 2
+                case 1:
+                    intensity = 0.7
+                    stretch = (1 / (swing + 1)) * 2
+                case 2:
+                    intensity = 0.7
+                    stretch = 1.0
+                case 3:
+                    intensity = 0.7
+                    stretch = 1.0
+
+            if note is not None and play_melody:
+                self.melody.play_note(
+                    note.pitch.midi_value, intensity, note.duration * stretch
+                )
+
+            chord = self.tune.chord(playhead)
+            if (
+                playhead % beats_per_bar == 0
+                and chord is not None
+                and play_chords
+                # and chord != last_chord
+            ):
+                self.play_chord(chord)
+                print(chord)
+                # last_chord = chord
             sleep(self.speed * stretch)

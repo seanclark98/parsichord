@@ -1,10 +1,13 @@
-from collections import deque
+from abc import ABC, abstractmethod
+from collections import Counter, deque
+from functools import lru_cache
 
 from pyabc import ChordBracket, ChordSymbol, Note, Token
 
 from parsichord.chords import Chord, ChordVoicing, Pitch
 from parsichord.constants import PitchClass
 from parsichord.tune import Tune
+from parsichord.utils import partition
 
 
 class NotFound(Exception):
@@ -57,16 +60,21 @@ def harmonize(tune: Tune, chord: Chord | None) -> Tune | None:
     return Tune(abc)
 
 
+@lru_cache
 def nearest_parsimonious_chord_voicing_containing(
-    chord_voicing: ChordVoicing, pitch: Pitch
+    chord_voicing: ChordVoicing, pitch: Pitch | list[Pitch]
 ) -> ChordVoicing:
     queue: deque[ChordVoicing] = deque()
+    if isinstance(pitch, list | tuple):
+        pitches = pitch
+    else:
+        pitches = [pitch]
     seen = set()
     # implement bfs
     queue.append(chord_voicing)
     while queue:
         new_chord_voicing = queue.popleft()
-        if pitch.pitch_class in new_chord_voicing.chord.pitch_classes:
+        if all(p.pitch_class in new_chord_voicing.chord.pitch_classes for p in pitches):
             return new_chord_voicing
         seen.add(new_chord_voicing.chord)
 
@@ -94,14 +102,20 @@ def chord_tokens(token: Token, chord_voicing: ChordVoicing) -> list[Token]:
     return [chord_symbol, *chord_voicing_tokens(token, chord_voicing)]
 
 
-class HarmonisationStrategy:
+class IHarmonisationStrategy(ABC):
     def __init__(self, harmonic_rhythm: int = 1):
         # notes per chord
         self.harmonic_rhythm = harmonic_rhythm
 
+    @abstractmethod
+    def harmonize(self, tune: Tune, chord_voicing: ChordVoicing) -> None:
+        pass
+
+
+class FirstNoteStrategy(IHarmonisationStrategy):
     def harmonize(self, tune: Tune, chord_voicing: ChordVoicing) -> None:
         previous_chord_voicing = None
-        # new_tokens = []
+        tune._chords.clear()
 
         for playhead, note in enumerate(tune.notes):
             if chord_voicing is None:
@@ -117,12 +131,36 @@ class HarmonisationStrategy:
                 chord_voicing != previous_chord_voicing
                 and playhead % self.harmonic_rhythm == 0
             ):
-                # new_tokens.extend(chord_tokens(note, chord_voicing))
-                # new_tokens.append(note)
-                # previous_chord_voicing = chord_voicing
+                previous_chord_voicing = chord_voicing
                 tune._chords[playhead] = chord_voicing
-            # else:
-            #     new_tokens.append(note)
 
-        # abc = tune.compose_header_abc() + "".join(str(token) for token in new_tokens)
-        # return Tune(abc=abc)
+
+class CommonTonesStrategy(IHarmonisationStrategy):
+    def harmonize(self, tune: Tune, chord_voicing: ChordVoicing) -> None:
+        previous_chord_voicing = None
+        tune._chords.clear()
+
+        for i, group in enumerate(
+            partition(tune.notes, part_size=self.harmonic_rhythm)
+        ):
+            if chord_voicing is None:
+                raise
+            group = [note.pitch for note in group if note is not None]
+
+            count_pitches = Counter(group)
+            pitches = sorted(count_pitches, key=lambda i: -count_pitches[i])[:3]
+
+            while True:
+                print(f"{pitches=}")
+                try:
+                    chord_voicing = nearest_parsimonious_chord_voicing_containing(
+                        chord_voicing, tuple(pitches)
+                    )
+                    print(f"Found {chord_voicing.chord=}")
+                    break
+                except NotFound:
+                    pitches.pop()
+
+            if chord_voicing != previous_chord_voicing:
+                previous_chord_voicing = chord_voicing
+                tune._chords[i * self.harmonic_rhythm] = chord_voicing

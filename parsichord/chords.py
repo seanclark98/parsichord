@@ -1,4 +1,5 @@
 from copy import deepcopy
+from functools import lru_cache
 from itertools import product
 from typing import Collection
 
@@ -238,6 +239,7 @@ class ChordVoicing:
     def __hash__(self) -> int:
         return hash(frozenset(self.pitches))
 
+    @lru_cache
     def find_closest_voicings(self) -> set["ChordVoicing"]:
         n = len(self.pitches)
         voicings = set()
