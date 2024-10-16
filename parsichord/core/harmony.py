@@ -2,18 +2,17 @@ from abc import ABC, abstractmethod
 from collections import Counter, deque
 from functools import lru_cache
 
-from pyabc import ChordBracket, ChordSymbol, Note, Token
-
-from parsichord.chords import Chord, ChordVoicing, Pitch
-from parsichord.constants import PitchClass
-from parsichord.tune import Tune
-from parsichord.utils import partition
+from ..utils import partition
+from .chords import Chord, ChordVoicing, Pitch
+from .constants import PitchClass
+from .tune import Tune
 
 
 class NotFound(Exception):
     pass
 
 
+@lru_cache
 def nearest_parsimonious_chord_containing_pitch_class(
     chord: Chord, pitch_class: PitchClass
 ) -> Chord:
@@ -31,33 +30,6 @@ def nearest_parsimonious_chord_containing_pitch_class(
             if parsimonious_chord not in seen:
                 queue.append(parsimonious_chord)
     raise NotFound(f"No path from {chord} to Chord containing {pitch_class}")
-
-
-def harmonize(tune: Tune, chord: Chord | None) -> Tune | None:
-    previous_chord = None
-    tokens = tune.tokens
-    new_tokens = []
-
-    for token in tokens:
-        if chord is None:
-            return None
-        if not isinstance(token, Note):
-            new_tokens.append(token)
-            continue
-        note = token
-        pitch_class = note.pitch.pitch_class
-        chord = nearest_parsimonious_chord_containing_pitch_class(chord, pitch_class)
-        if chord != previous_chord:
-            chord_symbol = ChordSymbol(
-                line=token._line, char=token._char, text=f'"{chord}"'
-            )
-            new_tokens.extend([chord_symbol, note])
-            previous_chord = chord
-        else:
-            new_tokens.append(note)
-
-    abc = tune.compose_header_abc() + "".join(str(token) for token in new_tokens)
-    return Tune(abc)
 
 
 @lru_cache
@@ -84,22 +56,36 @@ def nearest_parsimonious_chord_voicing_containing(
     raise NotFound(f"No path from {chord_voicing} to ChordVoicing containing {pitch}")
 
 
-def chord_voicing_tokens(token: Token, chord_voicing: ChordVoicing) -> list[Token]:
-    pitches = sorted(chord_voicing.pitches, key=lambda p: p.abs_value)
-    chord_open_bracket = ChordBracket(line=token._line, char=token._char, text="[")
-    chord_closed_bracket = ChordBracket(line=token._line, char=token._char, text="]")
-    return [chord_open_bracket, *pitches, chord_closed_bracket]
+class SimpleChordStrategy:
+    def __init__(self, harmonic_rhythm: int = 1):
+        # notes per chord
+        self.harmonic_rhythm = harmonic_rhythm
 
+    def harmonize(self, tune: Tune, chord: Chord | None) -> None:
+        previous_chord = None
 
-def create_chord_symbol(token: Token, chord_voicing: ChordVoicing) -> ChordSymbol:
-    return ChordSymbol(
-        line=token._line, char=token._char, text=f'"{chord_voicing.chord}"'
-    )
-
-
-def chord_tokens(token: Token, chord_voicing: ChordVoicing) -> list[Token]:
-    chord_symbol = create_chord_symbol(token, chord_voicing)
-    return [chord_symbol, *chord_voicing_tokens(token, chord_voicing)]
+        for playhead, note in enumerate(tune.notes):
+            if chord is None:
+                return None
+            if note is None:
+                continue
+            pitch_class = note.pitch.pitch_class
+            chord = nearest_parsimonious_chord_containing_pitch_class(
+                chord, pitch_class
+            )
+            if chord != previous_chord and playhead % self.harmonic_rhythm == 0:
+                previous_chord = chord
+                voicing = ChordVoicing(
+                    chord,
+                    [
+                        Pitch(
+                            pitch_class,
+                            1 if pitch_class.value < chord.root.value else 0,
+                        )
+                        for pitch_class in chord.pitch_classes
+                    ],
+                )
+                tune.set_chord(playhead, voicing)
 
 
 class IHarmonisationStrategy(ABC):
@@ -132,7 +118,7 @@ class FirstNoteStrategy(IHarmonisationStrategy):
                 and playhead % self.harmonic_rhythm == 0
             ):
                 previous_chord_voicing = chord_voicing
-                tune._chords[playhead] = chord_voicing
+                tune.set_chord(playhead, chord_voicing)
 
 
 class CommonTonesStrategy(IHarmonisationStrategy):
@@ -163,4 +149,4 @@ class CommonTonesStrategy(IHarmonisationStrategy):
 
             if chord_voicing != previous_chord_voicing:
                 previous_chord_voicing = chord_voicing
-                tune._chords[i * self.harmonic_rhythm] = chord_voicing
+                tune.set_chord(i * self.harmonic_rhythm, chord_voicing)

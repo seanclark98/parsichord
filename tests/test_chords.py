@@ -1,7 +1,7 @@
 import pytest
 
-from parsichord.chords import Chord, ChordType, ChordVoicing, Pitch
-from parsichord.constants import Interval, PitchClass, Triad
+from parsichord.core.chords import Chord, ChordType, ChordVoicing, Pitch
+from parsichord.core.constants import Interval, PitchClass, Triad
 
 
 class TestPitchClasss:

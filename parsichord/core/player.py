@@ -4,8 +4,8 @@ from typing import Generator
 
 import scamp
 
-from parsichord.chords import ChordVoicing, Note
-from parsichord.tune import Tune
+from .chords import ChordVoicing, Note
+from .tune import Tune
 
 
 class Player:
@@ -85,7 +85,7 @@ class Player:
                     note.pitch.midi_value, intensity, note.duration * stretch
                 )
 
-            chord = self.tune.chord(playhead)
+            chord = self.tune.get_chord(playhead)
             if (
                 playhead % (beats_per_bar * 3) == 0
                 and chord is not None
@@ -130,7 +130,7 @@ class Player:
                     note.pitch.midi_value, intensity, note.duration * stretch
                 )
 
-            chord = self.tune.chord(playhead)
+            chord = self.tune.get_chord(playhead)
             if (
                 playhead % beats_per_bar == 0
                 and chord is not None

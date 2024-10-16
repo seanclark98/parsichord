@@ -1,5 +1,5 @@
-from parsichord.chords import Chord, ChordType, Major, Minor
-from parsichord.constants import Interval
+from .chords import Chord, ChordType, Major, Minor
+from .constants import Interval
 
 
 class Transformation:

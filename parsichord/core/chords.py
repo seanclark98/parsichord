@@ -3,12 +3,12 @@ from functools import lru_cache
 from itertools import product
 from typing import Collection
 
-import pyabc
 from pyabc import Note, Pitch as ABCPitch
 
 from .constants import Interval, PitchClass, Triad, triad_to_intervals
 
 
+# TODO: factor out pyabc from core using composition over inheritance
 class Pitch(ABCPitch):
     def __init__(
         self, value: "Note | Pitch | PitchClass | int | str", octave: int | None = None
@@ -58,9 +58,6 @@ class Pitch(ABCPitch):
     @property
     def midi_value(self) -> int:
         return self.octave * 12 + self.value + 48
-
-
-pyabc.Pitch = Pitch
 
 
 class ChordType:
