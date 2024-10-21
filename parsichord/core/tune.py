@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from parsichord.core.chords import ChordVoicing, Pitch
+from parsichord.core.chord import ChordVoicing, Pitch
 
 
 class Note(ABC):

@@ -3,7 +3,7 @@ from collections import Counter, deque
 from functools import lru_cache
 
 from ..utils import partition
-from .chords import Chord, ChordVoicing, Pitch
+from .chord import Chord, ChordVoicing, Pitch
 from .constants import PitchClass
 from .tune import Tune
 

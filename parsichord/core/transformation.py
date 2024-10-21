@@ -1,4 +1,4 @@
-from .chords import Chord, ChordType, Major, Minor
+from .chord import Chord, ChordType, Major, Minor
 from .constants import Interval
 
 

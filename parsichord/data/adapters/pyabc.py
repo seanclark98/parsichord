@@ -1,6 +1,6 @@
 from pyabc import ChordBracket, ChordSymbol, Note as ABCNote, Token, Tune as ABCTune
 
-from parsichord.core.chords import ChordVoicing, Pitch
+from parsichord.core.chord import ChordVoicing, Pitch
 from parsichord.core.tune import Note, Tune
 from parsichord.data.thesession import TuneData
 from parsichord.utils import partition
