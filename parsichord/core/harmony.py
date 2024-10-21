@@ -131,9 +131,9 @@ class CommonTonesStrategy(IHarmonisationStrategy):
         ):
             if chord_voicing is None:
                 raise
-            group = [note.pitch for note in group if note is not None]
+            pitches = [note.pitch for note in group if note is not None]
 
-            count_pitches = Counter(group)
+            count_pitches = Counter(pitches)
             pitches = sorted(count_pitches, key=lambda i: -count_pitches[i])[:3]
 
             while True:

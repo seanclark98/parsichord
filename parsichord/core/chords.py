@@ -3,28 +3,30 @@ from functools import lru_cache
 from itertools import product
 from typing import Collection
 
-from pyabc import Note, Pitch as ABCPitch
-
 from .constants import Interval, PitchClass, Triad, triad_to_intervals
 
 
 # TODO: factor out pyabc from core using composition over inheritance
-class Pitch(ABCPitch):
-    def __init__(
-        self, value: "Note | Pitch | PitchClass | int | str", octave: int | None = None
-    ):
+class Pitch:
+    def __init__(self, value: "Pitch | PitchClass | int", octave: int = 0):
         if isinstance(value, PitchClass):
             value = value.value
-        super().__init__(value, octave)
+        elif isinstance(value, int):
+            pass
+        else:
+            raise NotImplementedError
+
+        self._value = value % 12
+        self._octave = octave + (value // 12)
 
     def __hash__(self) -> int:
         return hash((self.value, self.octave))
 
     def __add__(self, ivl: int) -> "Pitch":
-        return Pitch(super().__add__(ivl))
+        return self.__class__(self.value + ivl, octave=self.octave)
 
     def __sub__(self, ivl: int) -> "Pitch":
-        return Pitch(super().__sub__(ivl))
+        return self.__class__(self.value - ivl, octave=self.octave)
 
     def __str__(self) -> str:
         pitch_class = PitchClass(self.value)
@@ -38,22 +40,26 @@ class Pitch(ABCPitch):
         return ("_" if flat else "") + note
 
     @property
-    def equivalent_flat(self) -> "Pitch":
-        return Pitch(super().equivalent_flat())
+    def value(self) -> int:
+        return self._value
 
     @property
-    def equivalent_sharp(self) -> "Pitch":
-        return Pitch(super().equivalent_sharp())
+    def octave(self) -> int:
+        return self._octave
+
+    @property
+    def abs_value(self) -> int:
+        return self.value + self.octave * 12
 
     @property
     def pitch_class(self) -> PitchClass:
         return PitchClass(self.value)
 
-    @property
-    def abc(self) -> str:
-        if self.octave > 0:
-            return self.name.lower() + "'" * (self.octave - 1)
-        return self.name.upper() + "," * (self.octave - 1)
+    # @property
+    # def abc(self) -> str:
+    #     if self.octave > 0:
+    #         return self.name.lower() + "'" * (self.octave - 1)
+    #     return self.name.upper() + "," * (self.octave - 1)
 
     @property
     def midi_value(self) -> int:

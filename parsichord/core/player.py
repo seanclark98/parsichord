@@ -4,8 +4,7 @@ from typing import Generator
 
 import scamp
 
-from .chords import ChordVoicing, Note
-from .tune import Tune
+from .tune import ChordVoicing, Note, Tune
 
 
 class Player:

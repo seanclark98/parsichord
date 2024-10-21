@@ -30,7 +30,10 @@ class PyABCNoteAdapter(Note):
 
     @property
     def pitch(self) -> Pitch:
-        return Pitch(self._note)
+        acc = self._note.key.accidentals.get(self._note.note[0].upper(), "")
+        name = self._note.note.upper() + acc
+        value = self._note.pitch.pitch_value(name)
+        return Pitch(value=value)
 
     @property
     def duration(self) -> float:
