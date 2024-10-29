@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
 from collections import Counter, deque
 from functools import lru_cache
+from itertools import pairwise
 
 from ..utils import partition
+from .cadence import find_cadence
 from .chord import Chord, ChordVoicing, Pitch
 from .constants import PitchClass
 from .tune import Tune
@@ -150,3 +152,19 @@ class CommonTonesStrategy(IHarmonisationStrategy):
             if chord_voicing != previous_chord_voicing:
                 previous_chord_voicing = chord_voicing
                 tune.set_chord(i * self.harmonic_rhythm, chord_voicing)
+
+
+class CadenceStrategy(IHarmonisationStrategy):
+    def harmonize(self, tune: Tune, chord_voicing: ChordVoicing) -> None:
+        tune._chords.clear()
+        harmonic_groups = partition(tune.notes, part_size=self.harmonic_rhythm)
+
+        for g1, g2 in pairwise(harmonic_groups):
+            g1_notes = [n for n in g1 if n is not None]
+            g2_notes = [n for n in g2 if n is not None]
+
+            previous_note = g1_notes[-1].pitch.pitch_class - tune.key.tonic
+            next_note = g2_notes[0].pitch.pitch_class - tune.key.tonic
+            strong = True
+
+            find_cadence(previous_note, next_note, strong)

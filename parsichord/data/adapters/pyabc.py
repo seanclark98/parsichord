@@ -1,7 +1,15 @@
-from pyabc import ChordBracket, ChordSymbol, Note as ABCNote, Token, Tune as ABCTune
+from pyabc import (
+    ChordBracket,
+    ChordSymbol,
+    Key as PyABCKey,
+    Note as PyABCNote,
+    Token,
+    Tune as PyABCTune,
+)
 
 from parsichord.core.chord import ChordVoicing, Pitch
-from parsichord.core.tune import Note, Tune
+from parsichord.core.constants import PitchClass
+from parsichord.core.tune import Key, Note, Tune
 from parsichord.data.thesession import TuneData
 from parsichord.utils import partition
 
@@ -25,7 +33,7 @@ def chord_tokens(token: Token, chord_voicing: ChordVoicing) -> list[Token]:
 
 
 class PyABCNoteAdapter(Note):
-    def __init__(self, pyabc_note: ABCNote):
+    def __init__(self, pyabc_note: PyABCNote):
         self._note = pyabc_note
 
     @property
@@ -45,15 +53,20 @@ class PyABCTuneAdapter(Tune):
         super().__init__()
         self._tune = self._load_pyabc_tune(tune_data)
 
-    def _load_pyabc_tune(self, tune_data: TuneData) -> ABCTune:
-        return ABCTune(json=tune_data)
+    def _load_pyabc_tune(self, tune_data: TuneData) -> PyABCTune:
+        return PyABCTune(json=tune_data)
+
+    @property
+    def key(self) -> Key:
+        pyabc_key = PyABCKey(self._tune.header["key"])
+        return Key(PitchClass(pyabc_key.root.value), pyabc_key.mode)
 
     @property
     def notes(self) -> list[Note | None]:
         i = 0
         notes = []
         for abcnote in self._tune.tokens:
-            if not isinstance(abcnote, ABCNote):
+            if not isinstance(abcnote, PyABCNote):
                 continue
             note: Note = PyABCNoteAdapter(abcnote)
             notes.extend([note, *[None] * (int(note.duration) - 1)])

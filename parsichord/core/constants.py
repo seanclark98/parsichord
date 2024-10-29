@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import overload
 
 
 class Interval(Enum):
@@ -89,17 +90,37 @@ class PitchClass(Enum):
     def __str__(self) -> str:
         return self.name
 
-    def __add__(self, interval: int | Interval) -> "PitchClass":
-        if not isinstance(interval, int | Interval):
-            raise TypeError("interval must be of type int or Interval.")
-        ivl = interval.value if isinstance(interval, Interval) else interval
-        return PitchClass((self.value + ivl) % 12)
+    @overload
+    def __sub__(self, other: "PitchClass") -> Interval:
+        ...
 
-    def __sub__(self, interval: int | Interval) -> "PitchClass":
-        if not isinstance(interval, int | Interval):
-            raise TypeError("interval must be of type int or Interval.")
-        ivl = interval.value if isinstance(interval, Interval) else interval
+    @overload
+    def __sub__(self, other: Interval | int) -> "PitchClass":
+        ...
+
+    def __sub__(self, other: "int | Interval | PitchClass") -> "Interval | PitchClass":
+        if not isinstance(other, int | Interval | PitchClass):
+            raise TypeError("other must be of type int, Interval or PitchClass.")
+        if isinstance(other, PitchClass):
+            return Interval((self.value - other.value) % 12)
+        ivl = other.value if isinstance(other, Interval) else other
         return PitchClass((self.value - ivl) % 12)
+
+    @overload
+    def __add__(self, other: "PitchClass") -> Interval:
+        ...
+
+    @overload
+    def __add__(self, other: Interval | int) -> "PitchClass":
+        ...
+
+    def __add__(self, other: "int | Interval | PitchClass") -> "PitchClass | Interval":
+        if not isinstance(other, int | Interval | PitchClass):
+            raise TypeError("other must be of type int, Interval or PitchClass.")
+        if isinstance(other, PitchClass):
+            return Interval((self.value + other.value) % 12)
+        ivl = other.value if isinstance(other, Interval) else other
+        return PitchClass((self.value + ivl) % 12)
 
 
 class Triad(Enum):

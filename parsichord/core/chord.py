@@ -10,14 +10,14 @@ from .constants import Interval, PitchClass, Triad, triad_to_intervals
 class Pitch:
     def __init__(self, value: "Pitch | PitchClass | int", octave: int = 0):
         if isinstance(value, PitchClass):
-            value = value.value
+            v = value.value
         elif isinstance(value, int):
-            pass
+            v = value
         else:
             raise NotImplementedError
 
-        self._value = value % 12
-        self._octave = octave + (value // 12)
+        self._value = v % 12
+        self._octave = octave + (v // 12)
 
     def __hash__(self) -> int:
         return hash((self.value, self.octave))
@@ -158,12 +158,14 @@ class Chord:
         return self.root + Interval.MINOR_THIRD in self.pitch_classes
 
     def is_tertian(self) -> bool:
-        return all(
-            [
-                ivl in [Interval.MINOR_THIRD, Interval.MAJOR_THIRD]
-                for ivl in self.chord_type.intervals
-            ]
-        )
+        intervals = self.chord_type.intervals
+        for i in range(len(intervals) - 1):
+            if not intervals[i + 1] - intervals[i] in [
+                Interval.MINOR_THIRD,
+                Interval.MAJOR_THIRD,
+            ]:
+                return False
+        return True
 
     def is_triad(self) -> bool:
         return self.is_tertian() and len(self) == 3
@@ -202,6 +204,12 @@ class Chord:
             if set(chord.pitch_classes) == set(pitch_classes):
                 return chord
         return None
+
+
+class ScaleDegreeChord:
+    def __init__(self, root: Interval, chord_type: ChordType):
+        self.root = root
+        self.chord_type = chord_type
 
 
 triads: list[Chord] = []
