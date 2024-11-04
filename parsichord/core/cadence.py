@@ -26,7 +26,7 @@ perfect_cadence = Cadence(
     resolution_chord=ScaleDegreeChord(Interval.PERFECT_FIRST, Major),
     strong=True,
 )
-imperfect_cadence = Cadence(
+interupted_cadence = Cadence(
     approach_note=Interval.MAJOR_SEVENTH,
     resolution_note=Interval.PERFECT_FIRST,
     approach_chord=ScaleDegreeChord(Interval.PERFECT_FIFTH, Major),
