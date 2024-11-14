@@ -92,9 +92,32 @@ class Player:
                 # and chord != last_chord
             ):
                 self.play_chord(chord)
-                print(chord)
-                # last_chord = chord
             sleep(self.speed * stretch)
+
+    def play_note_at(self, playhead: int, swing: float = 1) -> None:
+        if playhead >= len(self.tune.notes):
+            return
+
+        match playhead % 4:
+            case 0:
+                intensity = 1.0
+                stretch = (swing / (swing + 1)) * 2
+            case 1:
+                intensity = 0.7
+                stretch = (1 / (swing + 1)) * 2
+            case 2:
+                intensity = 0.7
+                stretch = 1.0
+            case 3:
+                intensity = 0.7
+                stretch = 1.0
+
+        note = self.tune.notes[playhead]
+        if note is not None:
+            self.melody.play_note(
+                note.pitch.midi_value, intensity, note.duration * stretch
+            )
+        sleep(self.speed * stretch)
 
     def play_reel(
         self,
@@ -108,28 +131,9 @@ class Player:
 
         beats_per_bar = 4
 
-        # last_chord = None
-        for playhead, note in enumerate(self.tune.notes):
-            match playhead % 4:
-                case 0:
-                    intensity = 1.0
-                    stretch = (swing / (swing + 1)) * 2
-                case 1:
-                    intensity = 0.7
-                    stretch = (1 / (swing + 1)) * 2
-                case 2:
-                    intensity = 0.7
-                    stretch = 1.0
-                case 3:
-                    intensity = 0.7
-                    stretch = 1.0
-
-            if note is not None and play_melody:
-                self.melody.play_note(
-                    note.pitch.midi_value, intensity, note.duration * stretch
-                )
-
-            chord = self.tune.get_chord(playhead)
+        last_chord = None
+        for playhead in range(len(self.tune.notes)):
+            chord = self.tune.get_chord(playhead) or last_chord
             if (
                 playhead % beats_per_bar == 0
                 and chord is not None
@@ -138,5 +142,8 @@ class Player:
             ):
                 self.play_chord(chord)
                 print(chord)
-                # last_chord = chord
-            sleep(self.speed * stretch)
+                if chord is not None:
+                    last_chord = chord
+
+            if play_melody:
+                self.play_note_at(playhead, swing)

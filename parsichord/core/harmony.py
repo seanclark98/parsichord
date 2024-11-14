@@ -131,20 +131,16 @@ class CommonTonesStrategy(IHarmonisationStrategy):
         for i, group in enumerate(
             partition(tune.notes, part_size=self.harmonic_rhythm)
         ):
-            if chord_voicing is None:
-                raise
             pitches = [note.pitch for note in group if note is not None]
 
             count_pitches = Counter(pitches)
             pitches = sorted(count_pitches, key=lambda i: -count_pitches[i])[:3]
 
             while True:
-                print(f"{pitches=}")
                 try:
                     chord_voicing = nearest_parsimonious_chord_voicing_containing(
                         chord_voicing, tuple(pitches)
                     )
-                    print(f"Found {chord_voicing.chord=}")
                     break
                 except NotFound:
                     pitches.pop()
@@ -159,12 +155,16 @@ class CadenceStrategy(IHarmonisationStrategy):
         tune._chords.clear()
         harmonic_groups = partition(tune.notes, part_size=self.harmonic_rhythm)
 
-        for g1, g2 in pairwise(harmonic_groups):
-            g1_notes = [n for n in g1 if n is not None]
-            g2_notes = [n for n in g2 if n is not None]
+        for current_group, next_group in pairwise(harmonic_groups):
+            current_notes = [n for n in current_group if n is not None]
+            next_notes = [n for n in next_group if n is not None]
+            if len(current_notes) == 0 or len(next_notes) == 0:
+                continue
 
-            previous_note = g1_notes[-1].pitch.pitch_class - tune.key.tonic
-            next_note = g2_notes[0].pitch.pitch_class - tune.key.tonic
+            current_note = current_notes[-1].pitch.pitch_class - tune.key.tonic
+            next_note = next_notes[0].pitch.pitch_class - tune.key.tonic
             strong = True
 
-            find_cadence(previous_note, next_note, strong)
+            cadence = find_cadence(current_note, next_note, strong)
+            if cadence is not None:
+                print(f"{cadence=}")

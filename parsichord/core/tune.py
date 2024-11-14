@@ -15,6 +15,20 @@ class Note(ABC):
     def duration(self) -> float:
         ...
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self.pitch}, {self.duration})"
+
+    def __str__(self) -> str:
+        return f"{self.pitch} {self.duration}"
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Note):
+            return False
+        return (
+            self.pitch.abs_value == other.pitch.abs_value
+            and self.duration == other.duration
+        )
+
 
 class Key:
     def __init__(self, tonic: PitchClass, mode: str):

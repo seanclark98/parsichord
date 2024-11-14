@@ -1,4 +1,5 @@
 from pyabc import (
+    Beam,
     ChordBracket,
     ChordSymbol,
     Key as PyABCKey,
@@ -11,7 +12,6 @@ from parsichord.core.chord import ChordVoicing, Pitch
 from parsichord.core.constants import PitchClass
 from parsichord.core.tune import Key, Note, Tune
 from parsichord.data.thesession import TuneData
-from parsichord.utils import partition
 
 
 def chord_voicing_tokens(token: Token, chord_voicing: ChordVoicing) -> list[Token]:
@@ -52,6 +52,7 @@ class PyABCTuneAdapter(Tune):
     def __init__(self, tune_data: TuneData):
         super().__init__()
         self._tune = self._load_pyabc_tune(tune_data)
+        self._bars, self._anacrusis = self._parse_bars()
 
     def _load_pyabc_tune(self, tune_data: TuneData) -> PyABCTune:
         return PyABCTune(json=tune_data)
@@ -63,17 +64,41 @@ class PyABCTuneAdapter(Tune):
 
     @property
     def notes(self) -> list[Note | None]:
+        return [note for bar in self.bars for note in bar]
+
+    def _parse_bars(self) -> tuple[list[list[Note | None]], list[Note | None] | None]:
+        """Parse the tune tokens into bars using beams as bar delimiters."""
         i = 0
-        notes = []
-        for abcnote in self._tune.tokens:
-            if not isinstance(abcnote, PyABCNote):
-                continue
-            note: Note = PyABCNoteAdapter(abcnote)
-            notes.extend([note, *[None] * (int(note.duration) - 1)])
-            i += int(note.duration)
-        return notes
+        all_bars: list[list[Note | None]] = []
+        current_bar: list[Note | None] = []
+
+        for token in self._tune.tokens:
+            if isinstance(token, Beam) and current_bar:
+                all_bars.append(current_bar)
+                current_bar = []
+            elif isinstance(token, PyABCNote):
+                note: Note = PyABCNoteAdapter(token)
+                current_bar.extend([note, *[None] * (int(note.duration) - 1)])
+                i += int(note.duration)
+
+        # Add the last bar if it exists
+        if current_bar:
+            all_bars.append(current_bar)
+
+        # Check if the first bar is an anacrusis
+        if len(all_bars) > 0:
+            expected_bar_length = len(all_bars[1])
+            if len(all_bars[0]) < expected_bar_length:
+                return all_bars[1:], all_bars[0]
+
+        return all_bars, None
+
+    @property
+    def anacrusis(self) -> list[Note | None] | None:
+        """Returns the anacrusis bar if it exists, otherwise None."""
+        return self._anacrusis
 
     @property
     def bars(self) -> list[list[Note | None]]:
-        nsubdivisions = int(self._tune.header["meter"].split("/")[0])
-        return partition(self.notes, nsubdivisions)
+        """Returns the full bars of the tune, excluding any anacrusis."""
+        return self._bars
